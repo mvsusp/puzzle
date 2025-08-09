@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Board } from '../game/Board';
 import { BoardRenderer } from './BoardRenderer';
+import { Cursor } from '../game/Cursor';
 
 export class SceneManager {
   private scene: THREE.Scene;
@@ -15,6 +16,9 @@ export class SceneManager {
   // Game board
   private board: Board | null = null;
   private boardRenderer: BoardRenderer | null = null;
+  
+  // Game cursor
+  private cursor: Cursor | null = null;
   
   // Test sprite for Phase 1 (remove in Phase 2)
   private testSprite: THREE.Mesh | null = null;
@@ -112,6 +116,11 @@ export class SceneManager {
       this.boardRenderer.tick();
     }
     
+    // Update cursor
+    if (this.cursor) {
+      this.cursor.tick();
+    }
+    
     // Animate test sprite for visual confirmation (Phase 1 compatibility)
     if (this.testSprite) {
       this.testSpriteRotation += 0.02;
@@ -168,6 +177,27 @@ export class SceneManager {
   public getBoardRenderer(): BoardRenderer | null {
     return this.boardRenderer;
   }
+  
+  // Add cursor to the scene
+  public setCursor(cursor: Cursor): void {
+    // Remove existing cursor if any
+    if (this.cursor) {
+      this.gameContainer.remove(this.cursor.getMesh());
+      this.cursor.dispose();
+    }
+    
+    this.cursor = cursor;
+    
+    if (cursor) {
+      // Add cursor mesh to game container
+      this.gameContainer.add(cursor.getMesh());
+    }
+  }
+  
+  // Get cursor for external access
+  public getCursor(): Cursor | null {
+    return this.cursor;
+  }
 
   // Method to remove test sprite when moving to Phase 3
   public removeTestSprite(): void {
@@ -183,6 +213,12 @@ export class SceneManager {
   
   // Clean up resources
   public dispose(): void {
+    // Clean up cursor
+    if (this.cursor) {
+      this.cursor.dispose();
+      this.cursor = null;
+    }
+    
     // Clean up board renderer
     if (this.boardRenderer) {
       this.boardRenderer.dispose();

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Input Test</title>
+  <style>
+    body { background: #222; color: #0f0; font-family: monospace; padding: 20px; }
+    #log { background: #000; padding: 10px; height: 400px; overflow-y: auto; }
+    .highlight { color: #ff0; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Simple Input Test - Press Arrow Keys</h1>
+  <canvas id="gameCanvas" width="800" height="600" style="border: 1px solid #444;"></canvas>
+  <div id="log"></div>
+  
+  <script type="module">
+    import { GameEngine } from './src/core/GameEngine.js';
+    import { Board } from './src/game/Board.js';
+    import { Cursor } from './src/game/Cursor.js';
+    import { GameController } from './src/game/GameController.js';
+    import { BoardRenderer } from './src/rendering/BoardRenderer.js';
+    
+    const logDiv = document.getElementById('log');
+    function log(msg, highlight = false) {
+      const entry = document.createElement('div');
+      if (highlight) entry.className = 'highlight';
+      entry.textContent = new Date().toISOString().split('T')[1].substring(0, 12) + ' - ' + msg;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+    
+    async function init() {
+      try {
+        log('Creating game engine...');
+        const canvas = document.getElementById('gameCanvas');
+        const gameEngine = new GameEngine(canvas);
+        
+        log('Initializing engine...');
+        await gameEngine.initialize();
+        
+        log('Setting up game components...');
+        const sceneManager = gameEngine.getSceneManager();
+        const board = sceneManager.getBoard();
+        
+        // Skip countdown
+        log('Skipping countdown...');
+        for (let i = 0; i < 180; i++) {
+          board.tick();
+        }
+        log('Board state: ' + board.state, true);
+        
+        // Create cursor and controller
+        const cursor = new Cursor(board, BoardRenderer.TILE_SIZE);
+        const gameController = new GameController(board, cursor);
+        
+        // Set up in scene
+        sceneManager.setCursor(cursor);
+        gameEngine.setGameController(gameController);
+        
+        // Start engine
+        gameEngine.start();
+        log('Game started!', true);
+        
+        // Monitor cursor position
+        let lastX = cursor.getPosition().x;
+        let lastY = cursor.getPosition().y;
+        
+        setInterval(() => {
+          const pos = cursor.getPosition();
+          if (pos.x !== lastX || pos.y !== lastY) {
+            log(`CURSOR MOVED! From (${lastX},${lastY}) to (${pos.x},${pos.y})`, true);
+            lastX = pos.x;
+            lastY = pos.y;
+          }
+        }, 100);
+        
+        // Add raw keyboard listener
+        window.addEventListener('keydown', (e) => {
+          if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+            log('Key pressed: ' + e.code, true);
+            
+            // Check input manager state after a tick
+            setTimeout(() => {
+              const inputManager = gameController.getInputManager();
+              log('InputManager state: ' + inputManager.getDebugInfo());
+              
+              const cursorPos = cursor.getPosition();
+              log('Cursor position: (' + cursorPos.x + ',' + cursorPos.y + ')');
+            }, 50);
+          }
+        });
+        
+        log('Ready! Use arrow keys to move cursor.');
+        
+      } catch (error) {
+        log('ERROR: ' + error.message, true);
+        console.error(error);
+      }
+    }
+    
+    init();
+  </script>
+</body>
+</html>

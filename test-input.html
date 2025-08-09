@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Input System Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #222;
+      color: #fff;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #555;
+      border-radius: 5px;
+    }
+    .key-state {
+      display: inline-block;
+      margin: 5px;
+      padding: 10px;
+      background: #333;
+      border: 2px solid #666;
+      border-radius: 3px;
+    }
+    .key-state.pressed {
+      background: #4a4;
+      border-color: #6f6;
+    }
+    #log {
+      height: 200px;
+      overflow-y: auto;
+      background: #111;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 3px;
+    }
+    .log-entry {
+      margin: 2px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Input System Diagnostic Test</h1>
+  
+  <div class="test-section">
+    <h2>1. Basic Event Listener Test</h2>
+    <p>Press any key to test basic event capture:</p>
+    <div id="basicTest"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>2. Key State Tracking</h2>
+    <div id="keyStates">
+      <div class="key-state" id="key-ArrowUp">↑</div>
+      <div class="key-state" id="key-ArrowDown">↓</div>
+      <div class="key-state" id="key-ArrowLeft">←</div>
+      <div class="key-state" id="key-ArrowRight">→</div>
+      <div class="key-state" id="key-KeyX">X</div>
+      <div class="key-state" id="key-KeyZ">Z</div>
+      <div class="key-state" id="key-Escape">ESC</div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>3. InputManager Module Test</h2>
+    <button onclick="testInputManager()">Test InputManager</button>
+    <div id="inputManagerTest"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>4. Event Log</h2>
+    <div id="log"></div>
+  </div>
+
+  <script type="module">
+    // Test 1: Basic event listeners
+    const basicTest = document.getElementById('basicTest');
+    const log = document.getElementById('log');
+    let logCount = 0;
+
+    function addLog(message) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${++logCount}] ${new Date().toLocaleTimeString()}: ${message}`;
+      log.insertBefore(entry, log.firstChild);
+      if (log.children.length > 50) {
+        log.removeChild(log.lastChild);
+      }
+    }
+
+    // Basic keydown test
+    window.addEventListener('keydown', (e) => {
+      basicTest.textContent = `Last key pressed: ${e.code} (key: ${e.key})`;
+      addLog(`keydown: ${e.code}`);
+      
+      // Update visual state
+      const keyElement = document.getElementById(`key-${e.code}`);
+      if (keyElement) {
+        keyElement.classList.add('pressed');
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      addLog(`keyup: ${e.code}`);
+      
+      // Update visual state
+      const keyElement = document.getElementById(`key-${e.code}`);
+      if (keyElement) {
+        keyElement.classList.remove('pressed');
+      }
+    });
+
+    // Test 2: Check if events are being prevented
+    document.addEventListener('keydown', (e) => {
+      if (e.defaultPrevented) {
+        addLog(`WARNING: keydown for ${e.code} was prevented!`);
+      }
+    }, true);
+
+    // Test 3: Import and test InputManager
+    window.testInputManager = async function() {
+      try {
+        const testDiv = document.getElementById('inputManagerTest');
+        testDiv.innerHTML = 'Loading InputManager module...';
+        
+        const { InputManager, InputAction } = await import('./src/input/InputManager.ts');
+        
+        testDiv.innerHTML = 'Creating InputManager instance...';
+        const inputManager = new InputManager();
+        
+        testDiv.innerHTML = 'InputManager created. Testing...';
+        
+        // Create a test loop
+        let testCount = 0;
+        const interval = setInterval(() => {
+          inputManager.update();
+          
+          const states = [
+            `UP: ${inputManager.isPressed(InputAction.UP) ? '✓' : '✗'}`,
+            `DOWN: ${inputManager.isPressed(InputAction.DOWN) ? '✓' : '✗'}`,
+            `LEFT: ${inputManager.isPressed(InputAction.LEFT) ? '✓' : '✗'}`,
+            `RIGHT: ${inputManager.isPressed(InputAction.RIGHT) ? '✓' : '✗'}`,
+            `SWAP: ${inputManager.isPressed(InputAction.SWAP) ? '✓' : '✗'}`,
+            `RAISE: ${inputManager.isPressed(InputAction.RAISE) ? '✓' : '✗'}`,
+          ].join(' | ');
+          
+          testDiv.innerHTML = `
+            <p>InputManager Status: ${inputManager.isEnabled() ? 'ENABLED' : 'DISABLED'}</p>
+            <p>States: ${states}</p>
+            <p>Queue Size: ${inputManager.getQueueSize()}</p>
+            <p>Debug: ${inputManager.getDebugInfo()}</p>
+            <p>Updates: ${++testCount}</p>
+          `;
+          
+          // Check for any pressed keys
+          const events = inputManager.getInputEvents();
+          events.forEach(event => {
+            addLog(`InputManager Event: ${event.action} - ${event.type}`);
+          });
+        }, 100);
+        
+        // Stop after 30 seconds
+        setTimeout(() => {
+          clearInterval(interval);
+          inputManager.dispose();
+          testDiv.innerHTML += '<p style="color: yellow;">Test completed - InputManager disposed</p>';
+        }, 30000);
+        
+      } catch (error) {
+        document.getElementById('inputManagerTest').innerHTML = 
+          `<p style="color: red;">Error: ${error.message}</p>`;
+        console.error('InputManager test error:', error);
+      }
+    };
+
+    // Test 4: Check for focus issues
+    addLog(`Document has focus: ${document.hasFocus()}`);
+    window.addEventListener('focus', () => addLog('Window gained focus'));
+    window.addEventListener('blur', () => addLog('Window lost focus'));
+
+    // Initial message
+    addLog('Test page loaded. Press keys to test input system.');
+  </script>
+</body>
+</html>

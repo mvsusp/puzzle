@@ -1,4 +1,8 @@
 import { GameEngine } from './core/GameEngine';
+import { Board } from './game/Board';
+import { Cursor } from './game/Cursor';
+import { GameController } from './game/GameController';
+import { BoardRenderer } from './rendering/BoardRenderer';
 
 class Application {
   private gameEngine: GameEngine | null = null;
@@ -20,6 +24,10 @@ class Application {
       
       // Initialize and start the engine
       await this.gameEngine.initialize();
+      
+      // Set up game components (Phase 3 integration)
+      this.setupGame();
+      
       this.gameEngine.start();
       
       console.log('Panel Pop application started successfully');
@@ -31,6 +39,35 @@ class Application {
       console.error('Failed to initialize application:', error);
       this.showError('Failed to start the game. Please refresh the page and try again.');
     }
+  }
+  
+  private setupGame(): void {
+    if (!this.gameEngine) return;
+    
+    const sceneManager = this.gameEngine.getSceneManager();
+    
+    // Get the existing board from scene manager
+    const board = sceneManager.getBoard();
+    if (!board) {
+      throw new Error('Board not found in SceneManager');
+    }
+    
+    // Create cursor
+    const cursor = new Cursor(board, BoardRenderer.TILE_SIZE);
+    
+    // Create game controller
+    const gameController = new GameController(board, cursor);
+    
+    // Set up cursor in scene
+    sceneManager.setCursor(cursor);
+    
+    // Connect game controller to engine
+    this.gameEngine.setGameController(gameController);
+    
+    // Remove test sprite from Phase 1/2
+    sceneManager.removeTestSprite();
+    
+    console.log('Game components initialized - Phase 3 complete');
   }
   
   private setupErrorHandlers(): void {

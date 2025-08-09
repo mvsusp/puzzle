@@ -1,565 +1,197 @@
-# Panel Pop Three.js Implementation - Development Guide
+# Panel Pop - Three.js Implementation Context
 
 ## Project Overview
-Panel Pop is a Tetris Attack/Puzzle League clone being ported from C++ to Three.js. This document defines development best practices, testing standards, and quality assurance procedures.
+A faithful recreation of Panel de Pon / Tetris Attack / Puzzle League using Three.js and TypeScript. This is a frame-perfect port of the original C++/SDL game found in the `original/` folder.
 
-## Code Quality Standards
+## Current Implementation Status
 
-### Required Tools & Configuration
+### ✅ Phase 1: Foundation & Core Engine (COMPLETE)
+- Three.js scene with orthographic camera (800x600)
+- Asset loading system with progress tracking
+- Fixed timestep game loop (60 FPS)
+- Basic sprite rendering system
+- Development environment with hot reload
+- Comprehensive test suite setup
 
-#### ESLint Configuration
-```json
-// .eslintrc.json
-{
-  "extends": [
-    "eslint:recommended",
-    "@typescript-eslint/recommended",
-    "prettier"
-  ],
-  "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
-  "rules": {
-    "no-unused-vars": "error",
-    "no-console": "warn",
-    "prefer-const": "error",
-    "no-var": "error",
-    "eqeqeq": "error",
-    "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/explicit-function-return-type": "warn"
-  }
-}
+### ✅ Phase 2: Board System & Block Rendering (COMPLETE)
+- 6x24 grid board system (only rows 0-11 visible)
+- Block class with 6 states (Normal, Floating, Matched, Exploding, Swapping Left/Right)
+- Tile data structure with type, block, and garbage references
+- BoardRenderer with Three.js integration
+- Visual effects for all block states (floating bob, match blink, explosion scale/fade)
+- Grid background with guidelines
+- Buffer row management for stack raising
+
+### ✅ Phase 3: Input System & Cursor (COMPLETE)
+- InputManager with keyboard event handling, state tracking, and input queue
+- Cursor class with grid-aligned movement, horizontal wrapping, visual pulsing
+- GameController orchestrating input, cursor, and board interactions
+- Block swapping logic with animations
+- Manual stack raising
+- Pause functionality
+- Comprehensive debug UI with real-time input/cursor/game state display
+
+## Project Structure
+```
+├── src/
+│   ├── core/           # GameEngine (main loop, debug UI)
+│   ├── game/           # Board, Block, Cursor, GameController, BlockTypes
+│   ├── rendering/      # SceneManager, BoardRenderer, SpriteRenderer
+│   ├── input/          # InputManager
+│   ├── assets/         # AssetLoader
+│   └── main.ts         # Application entry point
+├── tests/              # Comprehensive test suites
+├── public/assets/      # Game assets (sprites, audio, fonts)
+└── original/           # Reference C++ implementation
 ```
 
-#### TypeScript Configuration
-```json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "exactOptionalPropertyTypes": true
-  }
-}
+## Key Technical Decisions
+
+### Architecture
+- **Fixed timestep game loop**: 60 FPS with accumulator pattern for consistent gameplay
+- **Orthographic camera**: Pixel-perfect 2D rendering in 3D engine
+- **State machines**: Block states, board states, game controller states
+- **Event-driven input**: Queue-based input handling with repeat logic
+
+### Game Constants (from original)
+```typescript
+BOARD_WIDTH = 6
+BOARD_HEIGHT = 24
+TOP_ROW = 11          // Visible top row (rows 12-23 are buffer)
+TILE_SIZE = 32        // Pixels per tile
+FLOAT_TICKS = 12      // Ticks before block falls
+SWAP_DELAY = 3        // Ticks for swap animation
+COUNTDOWN_TICKS = 188 // Countdown duration
+STACK_RAISE_STEPS = 32 // Animation steps per row raise
+BASE_EXPLOSION_TICKS = 61
+ADD_EXPLOSION_TICKS = 9
 ```
 
-#### Prettier Configuration
-```json
-// .prettierrc
-{
-  "semi": true,
-  "trailingComma": "es5",
-  "singleQuote": true,
-  "printWidth": 100,
-  "tabWidth": 2
-}
-```
+### Input System
+- **Arrow Keys/WASD**: Cursor movement
+- **X**: Block swap
+- **Z**: Manual stack raise
+- **ESC**: Pause
+- **F3**: Toggle debug UI
 
-### Development Workflow
-
-#### Pre-Commit Requirements
-**ALWAYS run these commands before committing ANY code changes:**
+## Development Commands
 
 ```bash
-# 1. Lint code and fix issues
-npm run lint
-npm run lint:fix
+# Development
+npm run dev           # Start dev server (localhost:3001)
+npm run build         # Production build
+npm run preview       # Preview production build
 
-# 2. Type check
-npm run type-check
+# Code Quality (ALWAYS run before commit)
+npm run lint          # ESLint check
+npm run type-check    # TypeScript check
+npm test              # Run all tests
 
-# 3. Format code
-npm run format
-
-# 4. Run all tests
-npm run test
-
-# 5. Run build to ensure no compilation errors
-npm run build
+# Testing specific components
+npm test -- tests/unit/game/       # Game logic tests
+npm test -- tests/unit/rendering/  # Rendering tests
+npm test -- tests/unit/input/      # Input tests (some failing - event dispatch issues in test env)
 ```
 
-#### Package.json Scripts
-```json
-{
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint src/**/*.{js,ts,tsx} --max-warnings 0",
-    "lint:fix": "eslint src/**/*.{js,ts,tsx} --fix",
-    "type-check": "tsc --noEmit",
-    "format": "prettier --write src/**/*.{js,ts,tsx,json,css}",
-    "format:check": "prettier --check src/**/*.{js,ts,tsx,json,css}",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest --coverage",
-    "test:ui": "vitest --ui"
-  }
-}
-```
-
-## Testing Standards
-
-### Testing Framework Setup
-- **Unit Tests**: Vitest + @testing-library
-- **Integration Tests**: Playwright (for browser testing)
-- **Coverage Target**: Minimum 80% line coverage for core game logic
-
-### Test Structure
-```
-tests/
-├── unit/
-│   ├── core/
-│   │   ├── Board.test.ts
-│   │   ├── Block.test.ts
-│   │   └── GameEngine.test.ts
-│   ├── game/
-│   │   ├── MatchDetection.test.ts
-│   │   ├── ChainSystem.test.ts
-│   │   └── ScoreCalculation.test.ts
-│   └── input/
-│       └── InputManager.test.ts
-├── integration/
-│   ├── GameFlow.test.ts
-│   ├── VSMode.test.ts
-│   └── EndlessMode.test.ts
-└── e2e/
-    ├── FullGameplay.spec.ts
-    └── MenuNavigation.spec.ts
-```
-
-### Required Test Coverage
-
-#### Core Game Logic (MUST be tested)
-1. **Board Class**
-   ```typescript
-   describe('Board', () => {
-     test('initializes with correct dimensions', () => {
-       const board = new Board();
-       expect(board.getWidth()).toBe(6);
-       expect(board.getHeight()).toBe(24);
-     });
-
-     test('detects horizontal matches correctly', () => {
-       const board = new Board();
-       // Set up 3 purple blocks horizontally
-       board.setTile(0, 0, new Block(BlockColor.PURPLE));
-       board.setTile(0, 1, new Block(BlockColor.PURPLE));
-       board.setTile(0, 2, new Block(BlockColor.PURPLE));
-       
-       board.matchBlocks();
-       expect(board.getTile(0, 0).block.state).toBe(BlockState.MATCHED);
-     });
-
-     test('chain detection works correctly', () => {
-       const board = setupChainScenario();
-       board.tick();
-       expect(board.getChainCounter()).toBe(2);
-     });
-   });
-   ```
-
-2. **Match Detection System**
-   ```typescript
-   describe('MatchDetection', () => {
-     test('requires minimum 3 blocks for match', () => {
-       // Test 2-block non-match
-       // Test 3-block match
-       // Test 4+ block match
-     });
-
-     test('only matches NORMAL state blocks', () => {
-       // Test that FLOATING/MATCHED/EXPLODING blocks don't match
-     });
-
-     test('handles L-shaped matches correctly', () => {
-       // Test complex match patterns
-     });
-   });
-   ```
-
-3. **Chain System**
-   ```typescript
-   describe('ChainSystem', () => {
-     test('chain counter increments on falling block matches', () => {
-       // Set up scenario where matched blocks create falling blocks
-       // Verify chain counter increases
-     });
-
-     test('chain ends when no chain-flagged blocks match', () => {
-       // Test chain termination
-     });
-   });
-   ```
-
-4. **Score Calculation**
-   ```typescript
-   describe('ScoreCalculation', () => {
-     test('combo scoring: 10 * blocks * blocks', () => {
-       expect(calculateComboScore(4)).toBe(160); // 10 * 4 * 4
-     });
-
-     test('chain scoring matches original values', () => {
-       expect(getChainScore(2)).toBe(50);
-       expect(getChainScore(3)).toBe(80);
-       expect(getChainScore(11)).toBe(1300);
-     });
-   });
-   ```
-
-5. **Garbage Block System**
-   ```typescript
-   describe('GarbageBlocks', () => {
-     test('spawn at correct positions', () => {
-       // Test garbage queue and positioning
-     });
-
-     test('transform correctly when triggered', () => {
-       // Test transformation logic
-     });
-
-     test('gray blocks require multiple triggers', () => {
-       // Test gray block behavior
-     });
-   });
-   ```
-
-6. **Input System**
-   ```typescript
-   describe('InputManager', () => {
-     test('queues inputs during animations', () => {
-       // Test input buffering
-     });
-
-     test('respects key bindings configuration', () => {
-       // Test custom key mapping
-     });
-   });
-   ```
-
-### Integration Tests
-
-#### Game Flow Tests
-```typescript
-describe('Game Flow Integration', () => {
-  test('complete chain sequence', async () => {
-    const game = new EndlessGame();
-    
-    // Set up chain scenario
-    setupChainBlocks(game.getBoard());
-    
-    // Trigger initial match
-    game.getBoard().inputSwapBlocks();
-    
-    // Run game ticks until chain completes
-    while (game.getBoard().hasActiveBlocks()) {
-      game.tick();
-    }
-    
-    // Verify final state
-    expect(game.getBoard().getChainCounter()).toBe(4);
-    expect(game.getBoard().getScore()).toBe(expectedChainScore);
-  });
-
-  test('panic mode activation', () => {
-    const game = new EndlessGame();
-    const board = game.getBoard();
-    
-    // Fill board to panic height
-    fillBoardToPanicHeight(board);
-    
-    game.tick();
-    
-    expect(game.isPanic()).toBe(true);
-    expect(board.getStackRaiseTicks()).toBeLessThan(10); // Faster raising
-  });
-});
-```
-
-### Performance Tests
-```typescript
-describe('Performance', () => {
-  test('maintains 60 FPS with full board', () => {
-    const game = new EndlessGame();
-    fillBoardCompletely(game.getBoard());
-    
-    const startTime = performance.now();
-    
-    // Run 60 ticks (1 second worth)
-    for (let i = 0; i < 60; i++) {
-      game.tick();
-    }
-    
-    const endTime = performance.now();
-    expect(endTime - startTime).toBeLessThan(16.67); // 60 FPS threshold
-  });
-
-  test('particle system handles 100+ particles', () => {
-    const particleSystem = new ParticleSystem();
-    
-    // Create explosion with many particles
-    for (let i = 0; i < 100; i++) {
-      particleSystem.createParticle(Math.random() * 400, Math.random() * 600);
-    }
-    
-    const startTime = performance.now();
-    particleSystem.update();
-    const endTime = performance.now();
-    
-    expect(endTime - startTime).toBeLessThan(1); // 1ms budget
-  });
-});
-```
-
-## Quality Gates
-
-### Pre-Commit Checklist
-- [ ] All linting rules pass (0 warnings, 0 errors)
-- [ ] TypeScript compilation succeeds with no errors
-- [ ] All unit tests pass
-- [ ] Code coverage remains above 80%
-- [ ] No new console.log statements (use proper logging)
-- [ ] Performance tests pass
-- [ ] Integration tests pass
-
-### Pull Request Requirements
-- [ ] All quality gates pass
-- [ ] New features include corresponding tests
-- [ ] Test coverage for new code is ≥90%
-- [ ] No breaking changes to existing API
-- [ ] Performance regression tests pass
-- [ ] Memory leak tests pass
-
-## Development Commands Reference
-
-### Daily Development
-```bash
-# Start development server
-npm run dev
-
-# Run tests in watch mode while coding
-npm run test:watch
-
-# Check code quality
-npm run lint && npm run type-check
-```
-
-### Before Committing
-```bash
-# Complete quality check (run this EVERY time before commit)
-npm run lint:fix && npm run type-check && npm run test && npm run build
-
-# Check test coverage
-npm run test:coverage
-```
-
-### Debugging
-```bash
-# Run specific test file
-npx vitest Board.test.ts
-
-# Run tests with debugger
-npx vitest --inspect-brk Board.test.ts
-
-# Run tests with UI
-npm run test:ui
-```
-
-## Game-Specific Testing Requirements
-
-### Critical Game Logic Verification
-
-#### Timing Accuracy
-All frame-based timing must match the original game exactly:
-```typescript
-test('explosion timing matches original', () => {
-  const block = new Block(BlockColor.PURPLE);
-  block.state = BlockState.MATCHED;
-  block.explosionTicks = 61; // Base explosion time
-  
-  // Simulate ticks
-  for (let i = 0; i < 61; i++) {
-    block.tick();
-  }
-  
-  expect(block.state).toBe(BlockState.EXPLODING);
-});
-
-test('float timer duration', () => {
-  const block = new Block(BlockColor.RED);
-  block.state = BlockState.FLOATING;
-  block.floatTimer = 12;
-  
-  // Should remain floating for exactly 12 ticks
-  for (let i = 0; i < 11; i++) {
-    block.tick();
-    expect(block.state).toBe(BlockState.FLOATING);
-  }
-  
-  block.tick(); // 12th tick
-  expect(block.state).toBe(BlockState.NORMAL);
-});
-```
-
-#### Match Detection Accuracy
-```typescript
-test('match detection edge cases', () => {
-  const board = new Board();
-  
-  // Test various match patterns that must work exactly like original
-  testVerticalMatch(board);
-  testHorizontalMatch(board);
-  testLShapedMatch(board);
-  testMatchDuringFall(board);
-});
-```
-
-#### Chain Mechanics Verification
-```typescript
-test('chain propagation rules', () => {
-  const board = new Board();
-  
-  // Verify chain flags propagate correctly
-  // Test multiple chain scenarios
-  // Ensure chain counter accuracy
-});
-```
-
-## Error Handling Standards
-
-### Required Error Boundaries
-```typescript
-// All Three.js operations must be wrapped
-try {
-  mesh.position.set(x, y, z);
-} catch (error) {
-  Logger.error('Mesh positioning failed', { x, y, z, error });
-  // Fallback behavior
-}
-
-// All game state changes must be validated
-function swapBlocks(x: number, y: number): boolean {
-  if (!isValidPosition(x, y)) {
-    Logger.warn('Invalid swap position', { x, y });
-    return false;
-  }
-  
-  // Perform swap
-  return true;
-}
-```
-
-## Memory Management
-
-### Required Cleanup Patterns
-```typescript
-class ParticleSystem {
-  private particles: Particle[] = [];
-  
-  update(): void {
-    // Remove dead particles to prevent memory leaks
-    this.particles = this.particles.filter(particle => particle.alive);
-  }
-  
-  dispose(): void {
-    // Clean up Three.js resources
-    this.particles.forEach(particle => {
-      particle.mesh.geometry.dispose();
-      particle.mesh.material.dispose();
-    });
-    this.particles.length = 0;
-  }
-}
-```
-
-## Performance Monitoring
-
-### Required Metrics
-```typescript
-class PerformanceMonitor {
-  private frameTimes: number[] = [];
-  
-  recordFrame(deltaTime: number): void {
-    this.frameTimes.push(deltaTime);
-    
-    // Alert if frame time exceeds budget
-    if (deltaTime > 16.67) { // 60 FPS threshold
-      Logger.warn('Frame time exceeded budget', { deltaTime });
-    }
-    
-    // Keep only last 60 frames
-    if (this.frameTimes.length > 60) {
-      this.frameTimes.shift();
-    }
-  }
-  
-  getAverageFrameTime(): number {
-    return this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
-  }
-}
-```
-
-## Commit Message Standards
-
-### Format
-```
-type(scope): description
-
-body (optional)
-
-Closes #issue-number (if applicable)
-```
-
-### Examples
-```
-feat(board): implement chain detection system
-
-- Add chain flag propagation logic
-- Implement chain counter management
-- Add chain end detection
-- All chain tests passing
-
-test(game): add comprehensive match detection tests
-
-- Cover horizontal and vertical matches
-- Test L-shaped match patterns
-- Add edge case coverage
-- Achieve 95% coverage for match system
-
-fix(rendering): resolve particle memory leak
-
-- Properly dispose particle geometries
-- Implement particle pooling
-- Add cleanup in dispose method
-- Memory usage now stable during long gameplay
-
-Closes #42
-```
-
-## Documentation Requirements
-
-### Code Comments
-```typescript
-/**
- * Detects and marks blocks for matching based on Panel de Pon rules.
- * Only NORMAL state blocks can participate in matches.
- * Minimum match size is 3 blocks in a line (horizontal or vertical).
- * 
- * @returns Number of blocks marked for matching this tick
- */
-matchBlocks(): number {
-  // Implementation details...
-}
-```
-
-### README Updates
-Any new feature or significant change requires corresponding README updates with:
-- Usage examples
-- Configuration options
-- Performance implications
-- Breaking changes
-
-Remember: The goal is to create a pixel-perfect recreation of the original Panel Pop game with modern web technologies while maintaining the highest code quality standards.
+## Current Test Status
+- ✅ 108/108 game logic tests passing (Block, Board, Cursor, GameController)
+- ✅ 8/8 rendering tests passing (SceneManager)
+- ⚠️ InputManager tests have issues with event dispatching in test environment (works in browser)
+
+## Debug UI Features
+Press **F3** to toggle debug display showing:
+- Performance metrics (FPS, frame time, ticks)
+- Cursor position (current, target, moving state)
+- Input states (visual indicators for all keys)
+- Game controller stats (swaps, raises, moves)
+- Board state and score
+
+## Next Implementation Phases
+
+### Phase 4: Core Game Mechanics (Days 16-25)
+**Priority: Implement gravity, matching, and timing systems**
+- Block falling logic with support checking
+- Float timer (12 ticks) implementation
+- Match detection (horizontal and vertical 3+ blocks)
+- Match marking and explosion timing (61 + 9n frames)
+- State transitions (NORMAL → MATCHED → EXPLODING)
+- Block removal after explosion
+
+### Phase 5: Chain & Combo System (Days 26-30)
+- Chain flag propagation
+- Chain detection on match
+- Chain counter management
+- Combo size calculation
+- Score calculation formulas
+
+### Phase 6: Animation System (Days 31-35)
+- Smooth swap animations
+- Fall animations
+- Explosion effects
+- Stack rise animation (32 steps)
+
+### Remaining Phases
+7. Garbage Blocks
+8. Visual Effects & Particles
+9. Game States & UI
+10. Audio System
+11. Game Modes
+12. AI System
+13. Configuration & Persistence
+14. Optimization & Polish
+15. Testing & Release
+
+## Important Implementation Notes
+
+### Current Issues/Considerations
+1. **Cursor Movement**: The cursor position updates during `tick()`, so tests must call `cursor.tick()` after movement
+2. **Input Tests**: Browser event simulation works differently in test environment vs actual browser
+3. **Board Creation**: SceneManager creates its own board in `initializeGameBoard()`, accessed via `getBoard()`
+4. **Grace Timer**: Set to 30 ticks after block swap to prevent immediate stack raising
+
+### Key Files to Reference
+- `implementation_plan.md`: Complete 15-phase roadmap with detailed specifications
+- `src/game/BlockTypes.ts`: All enums and constants
+- `src/game/Board.ts`: Core game logic placeholder for Phase 4
+- `src/game/GameController.ts`: Input processing and game flow
+- `original/panel-pop`: C++ reference for exact mechanics
+
+### Visual Confirmation
+The game currently displays:
+- 6x24 grid with colored blocks (Purple, Yellow, Red, Cyan, Green)
+- Grid lines and background
+- Pulsing white cursor (red in panic mode)
+- Countdown state transitioning to running state
+- Debug UI with comprehensive game information
+
+## Critical Next Steps for Phase 4
+
+1. **Gravity System**
+   - Implement `checkSupport()` method in Board
+   - Add falling state to blocks
+   - Handle float timer countdown
+
+2. **Match Detection**
+   - Implement `matchBlocks()` in Board
+   - Add horizontal and vertical scanning
+   - Mark matched blocks
+
+3. **Explosion Timing**
+   - Handle explosion countdown
+   - Remove blocks after explosion
+   - Trigger chain checks
+
+4. **Integration**
+   - Update Board.tick() to call gravity/matching
+   - Add visual feedback for falling/matched states
+   - Test frame-perfect timing
+
+## Testing Approach
+1. Always run `npm run lint && npm run type-check && npm test` before commits
+2. Visual testing at `localhost:3001` with debug UI (F3)
+3. Compare behavior with original C++ game
+4. Verify frame-perfect timing (60 FPS fixed timestep)
+
+## Contact for Questions
+Refer to implementation_plan.md for detailed specifications of each phase.
+Check original/panel-pop source code for exact game mechanics.

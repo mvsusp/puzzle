@@ -52,9 +52,30 @@
   </div>
   
   <div id="debugInfo" style="display: none;">
+    <div><strong>PERFORMANCE</strong></div>
     <div>FPS: <span id="fps">60</span></div>
     <div>Frame Time: <span id="frameTime">16.67ms</span></div>
     <div>Ticks: <span id="ticks">0</span></div>
+    
+    <div style="margin-top: 8px;"><strong>CURSOR</strong></div>
+    <div id="cursorPos">Pos:(2,5) Target:(2,5) Moving:false</div>
+    <div id="cursor">Cursor: (2,5) Target:(2,5) Moving:false</div>
+    
+    <div style="margin-top: 8px;"><strong>INPUT</strong></div>
+    <div id="inputStates">UP:□ DOWN:□ LEFT:□ RIGHT:□ SWAP:□ RAISE:□ PAUSE:□</div>
+    <div id="inputManager">Input: Queue(0) Pressed() Enabled(true)</div>
+    
+    <div style="margin-top: 8px;"><strong>GAME STATE</strong></div>
+    <div id="gameController">Controller: running Swaps:0 Raises:0 Moves:0</div>
+    <div id="boardState">State: countdown | Panic: false | Score: 0</div>
+    <div id="board">Board: countdown, Ticks: 0, Score: 0, Chain: 1</div>
+    
+    <div style="margin-top: 8px; font-size: 10px; color: #888;">
+      Press F3 to toggle debug | Arrow keys to move cursor
+    </div>
+    
+    <div style="margin-top: 8px;"><strong>INPUT DEBUG LOG</strong></div>
+    <div id="inputDebugLog" style="font-size: 10px; color: #0f0; max-height: 100px; overflow-y: auto;"></div>
   </div>
   
   <canvas id="gameCanvas"></canvas>

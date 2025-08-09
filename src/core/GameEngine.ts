@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { SceneManager } from '../rendering/SceneManager';
 import { AssetLoader } from '../assets/AssetLoader';
+import { GameController } from '../game/GameController';
+import { InputAction } from '../input/InputManager';
+import { debugLog } from '../debug/InputDebugger';
 
 export class GameEngine {
   private renderer: THREE.WebGLRenderer;
   private sceneManager: SceneManager;
   private assetLoader: AssetLoader;
+  private gameController: GameController | null = null;
   private clock: THREE.Clock;
   private accumulator: number = 0;
   private readonly timestep: number = 1 / 60; // 60 FPS
@@ -109,10 +113,30 @@ export class GameEngine {
   private tick(): void {
     this.ticksRun++;
     
+    // Log every 60 ticks (once per second)
+    if (this.ticksRun % 60 === 0) {
+      debugLog('GameEngine', `Tick ${this.ticksRun}, controller exists: ${!!this.gameController}`);
+      if (this.gameController) {
+        const cursor = this.sceneManager.getCursor();
+        if (cursor) {
+          const pos = cursor.getPosition();
+          debugLog('GameEngine', `Cursor position: (${pos.x}, ${pos.y})`);
+        }
+      }
+    }
+    
+    // Update game controller (input handling)
+    if (this.gameController) {
+      this.gameController.tick();
+      
+      // Update cursor state based on game state
+      this.gameController.updateCursorState();
+    } else if (this.ticksRun % 60 === 0) {
+      debugLog('GameEngine', 'WARNING: No game controller set!');
+    }
+    
     // Update game systems
     this.sceneManager.tick();
-    
-    // Game logic will be added in later phases
   }
   
   private render(alpha: number): void {
@@ -163,6 +187,9 @@ export class GameEngine {
       debugInfo.style.display = 'block';
     }
     
+    console.log('Debug UI enabled - Press F3 to toggle, Arrow keys to move cursor');
+    console.log('Keybindings: ↑↓←→/WASD = move, X = swap, Z = raise stack, ESC = pause');
+    
     // Toggle debug info with F3
     window.addEventListener('keydown', (event) => {
       if (event.code === 'F3') {
@@ -186,6 +213,7 @@ export class GameEngine {
                         this.frameTimeHistory.length;
     const fps = Math.round(1000 / avgFrameTime);
     
+    // Update basic performance info
     const fpsElement = document.getElementById('fps');
     const frameTimeElement = document.getElementById('frameTime');
     const ticksElement = document.getElementById('ticks');
@@ -193,6 +221,70 @@ export class GameEngine {
     if (fpsElement) fpsElement.textContent = fps.toString();
     if (frameTimeElement) frameTimeElement.textContent = `${avgFrameTime.toFixed(2)}ms`;
     if (ticksElement) ticksElement.textContent = this.ticksRun.toString();
+    
+    // Update game controller info
+    if (this.gameController) {
+      const controllerElement = document.getElementById('gameController');
+      if (controllerElement) {
+        controllerElement.textContent = this.gameController.getDebugInfo();
+      }
+      
+      // Update input manager info
+      const inputElement = document.getElementById('inputManager');
+      if (inputElement) {
+        inputElement.textContent = this.gameController.getInputManager().getDebugInfo();
+      }
+      
+      // Update input states
+      const inputStatesElement = document.getElementById('inputStates');
+      if (inputStatesElement) {
+        const inputManager = this.gameController.getInputManager();
+        const states = [
+          `UP: ${inputManager.isPressed(InputAction.UP) ? '■' : '□'}`,
+          `DOWN: ${inputManager.isPressed(InputAction.DOWN) ? '■' : '□'}`,
+          `LEFT: ${inputManager.isPressed(InputAction.LEFT) ? '■' : '□'}`,
+          `RIGHT: ${inputManager.isPressed(InputAction.RIGHT) ? '■' : '□'}`,
+          `SWAP: ${inputManager.isPressed(InputAction.SWAP) ? '■' : '□'}`,
+          `RAISE: ${inputManager.isPressed(InputAction.RAISE) ? '■' : '□'}`,
+          `PAUSE: ${inputManager.isPressed(InputAction.PAUSE) ? '■' : '□'}`
+        ];
+        inputStatesElement.textContent = states.join(' | ');
+      }
+    }
+    
+    // Update cursor info
+    const sceneManager = this.sceneManager;
+    const cursor = sceneManager.getCursor();
+    if (cursor) {
+      const cursorElement = document.getElementById('cursor');
+      if (cursorElement) {
+        cursorElement.textContent = cursor.getDebugInfo();
+      }
+      
+      // Update cursor position details
+      const cursorPosElement = document.getElementById('cursorPos');
+      if (cursorPosElement) {
+        const pos = cursor.getPosition();
+        const target = cursor.getTargetPosition();
+        const moving = cursor.isMoving();
+        cursorPosElement.textContent = `Pos:(${pos.x},${pos.y}) Target:(${target.x},${target.y}) Moving:${moving}`;
+      }
+    }
+    
+    // Update board info
+    const board = sceneManager.getBoard();
+    if (board) {
+      const boardElement = document.getElementById('board');
+      if (boardElement) {
+        boardElement.textContent = board.getDebugInfo();
+      }
+      
+      // Update board state
+      const boardStateElement = document.getElementById('boardState');
+      if (boardStateElement) {
+        boardStateElement.textContent = `State: ${board.state} | Panic: ${board.isPanic()} | Score: ${board.getScore()}`;
+      }
+    }
   }
   
   // Getters for debugging and testing
@@ -210,5 +302,27 @@ export class GameEngine {
   
   public isDebugMode(): boolean {
     return this.debugMode;
+  }
+  
+  // Game controller management
+  public setGameController(gameController: GameController): void {
+    this.gameController = gameController;
+  }
+  
+  public getGameController(): GameController | null {
+    return this.gameController;
+  }
+  
+  // Input handling
+  public isPaused(): boolean {
+    return this.gameController?.isPaused() ?? false;
+  }
+  
+  public pause(): void {
+    this.gameController?.pause();
+  }
+  
+  public resume(): void {
+    this.gameController?.resume();
   }
 }
