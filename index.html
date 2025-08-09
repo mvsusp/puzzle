@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Pop - Three.js</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: monospace;
+      color: white;
+    }
+    
+    #gameCanvas {
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #333;
+    }
+    
+    #loadingScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 18px;
+    }
+    
+    #debugInfo {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 12px;
+      font-family: monospace;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingScreen">
+    <div>Loading Panel Pop...</div>
+    <div id="loadingProgress">0%</div>
+  </div>
+  
+  <div id="debugInfo" style="display: none;">
+    <div>FPS: <span id="fps">60</span></div>
+    <div>Frame Time: <span id="frameTime">16.67ms</span></div>
+    <div>Ticks: <span id="ticks">0</span></div>
+  </div>
+  
+  <canvas id="gameCanvas"></canvas>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
