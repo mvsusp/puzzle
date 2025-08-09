@@ -129,7 +129,7 @@ describe('Board', () => {
     });
 
     it('should have proper stack raise timing', () => {
-      expect(board.stackRaiseTicks).toBe(10);
+      expect(board.stackRaiseTicks).toBe(300); // Updated to slower timing (5 seconds at 60 FPS)
       expect(board.stackRaiseTimer).toBe(0);
     });
   });

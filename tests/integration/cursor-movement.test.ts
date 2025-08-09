@@ -4,6 +4,7 @@ import { Board } from '../../src/game/Board';
 import { Cursor } from '../../src/game/Cursor';
 import { BoardRenderer } from '../../src/rendering/BoardRenderer';
 import { InputAction } from '../../src/input/InputManager';
+import { BoardState } from '../../src/game/BlockTypes';
 
 describe('Cursor Movement Integration Test', () => {
   let board: Board;
@@ -17,14 +18,17 @@ describe('Cursor Movement Integration Test', () => {
   });
   
   it('should move cursor when arrow keys are pressed', () => {
-    // Skip countdown (180 ticks)
-    for (let i = 0; i < 180; i++) {
+    // Skip countdown (188 ticks required for COUNTDOWN_TICKS)
+    for (let i = 0; i < 188; i++) {
       board.tick();
     }
     
+    // Ensure board is in RUNNING state
+    expect(board.state).toBe(BoardState.RUNNING);
+    
     const startPos = cursor.getPosition();
-    console.log('Starting position:', startPos);
-    console.log('Board state:', board.state);
+    expect(startPos.x).toBe(2);
+    expect(startPos.y).toBe(5);
     
     // Get input manager and simulate key press
     const inputManager = gameController.getInputManager();
@@ -39,19 +43,12 @@ describe('Cursor Movement Integration Test', () => {
     
     window.dispatchEvent(event);
     
-    // Update input manager to process the event
-    inputManager.update();
-    
-    // Check if event was queued
-    const events = inputManager.getInputEvents();
-    console.log('Input events:', events);
-    
-    // Process the input through game controller
+    // Let GameController process the input
+    // Note: GameController.tick() calls inputManager.update() internally
     gameController.tick();
     cursor.tick();
     
     const newPos = cursor.getPosition();
-    console.log('New position:', newPos);
     
     // Check if position changed
     expect(newPos.y).toBe(startPos.y + 1);
@@ -78,11 +75,8 @@ describe('Cursor Movement Integration Test', () => {
     
     // Check if event was queued
     const events = inputManager.getInputEvents();
-    console.log('Queued events:', events);
     
     expect(events.length).toBeGreaterThan(0);
-    if (events.length > 0) {
-      expect(events[0].action).toBe(InputAction.LEFT);
-    }
+    expect(events[0].action).toBe(InputAction.LEFT);
   });
 });

@@ -182,15 +182,27 @@ export class SceneManager {
   public setCursor(cursor: Cursor): void {
     // Remove existing cursor if any
     if (this.cursor) {
-      this.gameContainer.remove(this.cursor.getMesh());
+      // Try removing from board group first, then game container
+      const boardGroup = this.boardRenderer?.getBoardGroup();
+      if (boardGroup && boardGroup.children.includes(this.cursor.getMesh())) {
+        boardGroup.remove(this.cursor.getMesh());
+      } else {
+        this.gameContainer.remove(this.cursor.getMesh());
+      }
       this.cursor.dispose();
     }
     
     this.cursor = cursor;
     
     if (cursor) {
-      // Add cursor mesh to game container
-      this.gameContainer.add(cursor.getMesh());
+      // Add cursor mesh to board group so it inherits the same offset
+      const boardGroup = this.boardRenderer?.getBoardGroup();
+      if (boardGroup) {
+        boardGroup.add(cursor.getMesh());
+      } else {
+        // Fallback to game container if no board
+        this.gameContainer.add(cursor.getMesh());
+      }
     }
   }
   

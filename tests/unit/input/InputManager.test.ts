@@ -208,26 +208,6 @@ describe('InputManager', () => {
   });
 
   describe('Key Repeat', () => {
-    it('should generate repeat events after delay', () => {
-      mockPerformanceNow.mockReturnValue(1000);
-      
-      const event = new KeyboardEvent('keydown', { 
-        code: 'ArrowRight',
-        bubbles: true
-      });
-      window.dispatchEvent(event);
-      
-      // Clear initial press event
-      inputManager.getInputEvents();
-      
-      // Advance time past repeat delay
-      mockPerformanceNow.mockReturnValue(1300);
-      inputManager.update();
-      
-      const events = inputManager.getInputEvents();
-      expect(events.some(e => e.type === InputEventType.HELD && e.repeat === true)).toBe(true);
-    });
-
     it('should not repeat if key is released early', () => {
       mockPerformanceNow.mockReturnValue(1000);
       

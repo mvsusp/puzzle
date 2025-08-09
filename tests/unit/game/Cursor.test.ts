@@ -158,11 +158,11 @@ describe('Cursor', () => {
 
     it('should set grace timer after swap', () => {
       cursor.setPosition(1, 1);
-      const initialGraceTimer = board.graceTimer;
       
       cursor.swap();
       
-      expect(board.graceTimer).toBeGreaterThan(initialGraceTimer);
+      // After swap, grace timer should be set to 30
+      expect(board.graceTimer).toBe(30);
     });
 
     it('should start swap animations on blocks', () => {

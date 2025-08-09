@@ -177,6 +177,18 @@ export class BoardRenderer {
       mesh.material = material;
     }
     
+    // Reset mesh position to its base grid position before applying effects
+    const meshName = mesh.name;
+    const [, rowStr, colStr] = meshName.split('_');
+    const row = parseInt(rowStr);
+    const col = parseInt(colStr);
+    
+    const baseX = col * BoardRenderer.TILE_SIZE - (BoardRenderer.BOARD_PIXEL_WIDTH / 2) + (BoardRenderer.TILE_SIZE / 2);
+    const baseY = row * BoardRenderer.TILE_SIZE - (BoardRenderer.BOARD_PIXEL_HEIGHT / 2) + (BoardRenderer.TILE_SIZE / 2);
+    
+    mesh.position.x = baseX;
+    mesh.position.y = baseY;
+    
     // Update visual effects based on block state
     this.applyBlockStateEffects(mesh, block, tile);
   }
@@ -222,15 +234,21 @@ export class BoardRenderer {
         }
         break;
         
-      case BlockState.SWAPPING_LEFT:
-        // Slide animation (will be enhanced in Phase 6)
-        mesh.position.x -= 2;
+      case BlockState.SWAPPING_LEFT: {
+        // Smooth slide animation based on swap progress
+        const swapProgress = (3 - block.swapTimer) / 3; // 0 to 1
+        const slideDistance = swapProgress * BoardRenderer.TILE_SIZE;
+        mesh.position.x -= slideDistance;
         break;
+      }
         
-      case BlockState.SWAPPING_RIGHT:
-        // Slide animation (will be enhanced in Phase 6)
-        mesh.position.x += 2;
+      case BlockState.SWAPPING_RIGHT: {
+        // Smooth slide animation based on swap progress
+        const swapProgress = (3 - block.swapTimer) / 3; // 0 to 1
+        const slideDistance = swapProgress * BoardRenderer.TILE_SIZE;
+        mesh.position.x += slideDistance;
         break;
+      }
         
       default:
         material.opacity = 1.0;

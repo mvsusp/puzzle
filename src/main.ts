@@ -1,5 +1,4 @@
 import { GameEngine } from './core/GameEngine';
-import { Board } from './game/Board';
 import { Cursor } from './game/Cursor';
 import { GameController } from './game/GameController';
 import { BoardRenderer } from './rendering/BoardRenderer';

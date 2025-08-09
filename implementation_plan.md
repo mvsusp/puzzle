@@ -262,10 +262,10 @@ Establish the technical foundation and core rendering pipeline for the game.
    - Development environment with hot reload
 
 #### Success Criteria
-- [ ] Three.js renders a test sprite on screen
-- [ ] Game loop runs at stable 60 FPS
+- [x] Three.js renders a test sprite on screen
+- [x] Game loop runs at stable 60 FPS
 - [ ] Assets load without errors
-- [ ] Basic project structure established
+- [x] Basic project structure established
 
 #### Code Structure
 ```javascript

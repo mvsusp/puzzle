@@ -46,12 +46,12 @@ export class Board {
   
   // Stack management
   public stackOffset: number = 0; // Pixel offset for smooth stack raising
-  public stackRaiseTicks: number = 10; // Ticks between automatic raises
+  public stackRaiseTicks: number = 300; // Ticks between automatic raises (5 seconds at 60 FPS)
   public stackRaiseTimer: number = 0;
   public stackRaiseForced: boolean = false;
   
   // Game mechanics state
-  public graceTimer: number = 0; // Prevents stack raising during active play
+  public graceTimer: number = 180; // Prevents stack raising during active play (3 seconds initial grace)
   public activeBlocks: boolean = false; // True if blocks are falling/matching
   public chainCounter: number = 1;
   public lastChain: number = 0;
