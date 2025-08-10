@@ -2,6 +2,7 @@ import { GameEngine } from './core/GameEngine';
 import { Cursor } from './game/Cursor';
 import { GameController } from './game/GameController';
 import { BoardRenderer } from './rendering/BoardRenderer';
+import { ComboDebugger } from './debug/ComboDebugger';
 
 class Application {
   private gameEngine: GameEngine | null = null;
@@ -133,4 +134,5 @@ document.addEventListener('DOMContentLoaded', () => {
 // For debugging in development
 if (import.meta.env?.DEV) {
   (window as unknown as Record<string, unknown>).app = Application;
+  (window as unknown as Record<string, unknown>).comboDebugger = ComboDebugger.getInstance();
 }

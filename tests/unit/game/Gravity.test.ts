@@ -85,7 +85,7 @@ describe('Gravity System', () => {
       const supportTile = board.getTile(0, 2);
       if (supportTile) {
         supportTile.type = TileType.BLOCK;
-        supportTile.block = new Block(BlockColor.BLUE);
+        supportTile.block = new Block(BlockColor.CYAN);
       }
 
       // Place falling block above
@@ -120,7 +120,7 @@ describe('Gravity System', () => {
       const aboveTile = board.getTile(4, 1);
       if (aboveTile) {
         aboveTile.type = TileType.BLOCK;
-        aboveTile.block = new Block(BlockColor.BLUE);
+        aboveTile.block = new Block(BlockColor.CYAN);
       }
 
       // Run enough ticks for falling
@@ -131,7 +131,7 @@ describe('Gravity System', () => {
       // The blue block should have fallen down
       expect(board.getTile(4, 1)?.type).toBe(TileType.AIR); // Original position empty
       expect(board.getTile(0, 1)?.type).toBe(TileType.BLOCK); // Fell to bottom
-      expect(board.getTile(0, 1)?.block?.color).toBe(BlockColor.BLUE);
+      expect(board.getTile(0, 1)?.block?.color).toBe(BlockColor.CYAN);
     });
 
     it('should handle basic match scoring', () => {
@@ -221,7 +221,7 @@ describe('Gravity System', () => {
       const supportedTile = board.getTile(1, 1);
       if (supportedTile) {
         supportedTile.type = TileType.BLOCK;
-        supportedTile.block = new Block(BlockColor.BLUE);
+        supportedTile.block = new Block(BlockColor.CYAN);
       }
 
       // Tick a few times
@@ -249,15 +249,19 @@ describe('Gravity System', () => {
       const aboveTile = board.getTile(3, 1);
       if (aboveTile) {
         aboveTile.type = TileType.BLOCK;
-        aboveTile.block = new Block(BlockColor.BLUE);
+        aboveTile.block = new Block(BlockColor.CYAN);
       }
 
       // Tick once to detect lack of support
       board.tick();
 
       // Block above should start falling despite block below (because it's exploding)
-      expect(aboveTile.block?.falling).toBe(true);
-      expect(aboveTile.block?.state).toBe(BlockState.FLOATING);
+      if (aboveTile && aboveTile.block) {
+        expect(aboveTile.block.falling).toBe(true);
+        expect(aboveTile.block.state).toBe(BlockState.FLOATING);
+      } else {
+        throw new Error('Above tile or block should not be null');
+      }
     });
   });
 
@@ -321,7 +325,7 @@ describe('Gravity System', () => {
       const chainTile = board.getTile(3, 2);
       if (chainTile) {
         chainTile.type = TileType.BLOCK;
-        chainTile.block = new Block(BlockColor.BLUE);
+        chainTile.block = new Block(BlockColor.CYAN);
       }
 
       board.state = 'running' as any;
@@ -335,8 +339,10 @@ describe('Gravity System', () => {
       let foundChainBlock = false;
       for (let row = 0; row <= Board.TOP_ROW; row++) {
         const tile = board.getTile(row, 2);
-        if (tile?.block?.color === BlockColor.BLUE) {
-          expect(tile.chain).toBe(true);
+        if (tile?.block?.color === BlockColor.CYAN) {
+          if (tile) {
+            expect(tile.chain).toBe(true);
+          }
           foundChainBlock = true;
           break;
         }

@@ -1,6 +1,7 @@
 import { Block } from './Block';
 import { GarbageBlock, GarbageBlockType } from './GarbageBlock';
 import { BlockColor, BlockState, BoardState, TileType } from './BlockTypes';
+import { comboLog } from '../debug/ComboDebugger';
 
 export interface Tile {
   type: TileType;
@@ -64,6 +65,12 @@ export class Board {
   public tickChainEnd: boolean = false; // Chain ended this tick
   public tickMatchRow: number = -1;
   public tickMatchCol: number = -1;
+  
+  // Phase 5: Advanced chain/combo tracking
+  public tickComboSize: number = 0; // Size of combo this tick
+  public tickChainLength: number = 0; // Current chain length
+  public lastTickHadMatches: boolean = false; // Track if previous tick had matches
+  public consecutiveNonMatchTicks: number = 0; // Ticks without matches (for chain end detection)
   
   // Visual state
   public warnColumns: boolean[] = new Array(Board.BOARD_WIDTH).fill(false);
@@ -194,6 +201,10 @@ export class Board {
     this.tickChainEnd = false;
     this.tickMatchRow = -1;
     this.tickMatchCol = -1;
+    
+    // Phase 5: Reset combo/chain tracking
+    this.tickComboSize = 0;
+    this.tickChainLength = this.chainCounter;
     
     // Update all blocks
     for (let row = 0; row < Board.BOARD_HEIGHT; row++) {
@@ -619,22 +630,51 @@ export class Board {
     return targetRow;
   }
   
-  // Phase 4: Handle block matching
+  // Phase 5: Enhanced block matching with chain and combo detection
   private handleMatching(): void {
     const matchedBlocks: Array<{row: number, col: number}> = [];
     
     // Find all matches this tick
     this.findMatches(matchedBlocks);
-    
+
     if (matchedBlocks.length >= 3) {
-      console.log(`Found ${matchedBlocks.length} matched blocks:`, matchedBlocks);
+      // COMBO POINTING LOG: Match detection
+      comboLog(`Found ${matchedBlocks.length} matched blocks at: ${matchedBlocks.map(m => `(${m.row},${m.col})`).join(' ')}`, 'match');
       this.tickMatched = matchedBlocks.length;
+      this.lastTickHadMatches = true;
+      this.consecutiveNonMatchTicks = 0;
+      
+      // Analyze matches for chain detection
+      let isChainMatch = false;
+      let comboGroups: Array<Array<{row: number, col: number}>> = [];
+      
+      // Group matches by connected components for combo calculation
+      comboGroups = this.groupMatchesIntoCombo(matchedBlocks);
+      this.tickComboSize = comboGroups.length;
+      
+      // COMBO POINTING LOG: Combo analysis
+      if (this.tickComboSize > 1) {
+        comboLog(`${this.tickComboSize} simultaneous combos detected!`, 'combo');
+        comboGroups.forEach((group, index) => {
+          const colors = group.map(pos => {
+            const tile = this.tiles[pos.row][pos.col];
+            return tile.block ? ['Purple', 'Yellow', 'Red', 'Cyan', 'Green'][tile.block.color] : 'Unknown';
+          });
+          console.log(`   Combo ${index + 1}: ${group.length} ${colors[0]} blocks at ${group.map(p => `(${p.row},${p.col})`).join(' ')}`);
+        });
+      }
       
       // Mark matched blocks and set explosion timers
       let explosionOrder = 0;
       for (const match of matchedBlocks) {
         const tile = this.tiles[match.row][match.col];
         if (tile.block) {
+          // Check if this block is part of a chain
+          if (this.isChainBlock(match.row, match.col)) {
+            isChainMatch = true;
+            tile.block.falling = false; // Mark as no longer falling since it matched
+          }
+          
           tile.block.markMatched();
           tile.block.explosionOrder = explosionOrder++;
           
@@ -642,28 +682,47 @@ export class Board {
           const explosionTicks = Board.BASE_EXPLOSION_TICKS + 
                                (Board.ADD_EXPLOSION_TICKS * tile.block.explosionOrder);
           tile.block.startExplosion(explosionTicks);
-          
-          // Check if this is part of a chain
-          if (tile.chain || tile.block.falling) {
-            this.tickChain = true;
-          }
         }
       }
       
-      // Update chain counter
-      if (this.tickChain) {
+      // Update chain system
+      if (isChainMatch) {
+        this.tickChain = true;
         this.chainCounter++;
+        this.tickChainLength = this.chainCounter;
+        comboLog(`Chain extended to ${this.chainCounter}! ${matchedBlocks.length} chain blocks matched`, 'chain');
+      } else if (this.chainCounter > 1) {
+        // Chain continues with non-chain match (shouldn't happen but handle gracefully)
+        this.chainCounter = 1;
+        this.tickChainLength = 1;
+        comboLog(`Chain broken - reset to 1`, 'chain');
       } else {
-        this.chainCounter = 1; // Reset to 1 for non-chain matches
+        // First match or regular match
+        this.chainCounter = 1;
+        this.tickChainLength = 1;
+        comboLog(`Regular match (no chain) - ${matchedBlocks.length} blocks`, 'match');
       }
       
-      // Calculate score
-      this.calculateScore(matchedBlocks.length);
+      // Calculate score with enhanced combo/chain system
+      this.calculateAdvancedScore(matchedBlocks.length, comboGroups.length);
       
       // Mark first match position for effects
       if (matchedBlocks.length > 0) {
         this.tickMatchRow = matchedBlocks[0].row;
         this.tickMatchCol = matchedBlocks[0].col;
+      }
+    } else {
+      // No matches this tick
+      this.lastTickHadMatches = false;
+      this.consecutiveNonMatchTicks++;
+      
+      // Check for chain end
+      if (this.chainCounter > 1 && this.consecutiveNonMatchTicks >= 2) {
+        this.tickChainEnd = true;
+        this.lastChain = this.chainCounter;
+        comboLog(`Chain ENDED at length ${this.chainCounter}! Total chain bonus applied.`, 'end');
+        // Reset chain counter after chain ends
+        this.chainCounter = 1;
       }
     }
   }
@@ -815,10 +874,109 @@ export class Board {
     }
   }
   
-  // Calculate and add score from matches
-  private calculateScore(blockCount: number): void {
-    // Combo scoring: 10 × blocks × blocks
-    const comboScore = 10 * blockCount * blockCount;
+  // Phase 5: Check if a block is part of a chain
+  private isChainBlock(row: number, col: number): boolean {
+    const tile = this.tiles[row][col];
+    if (!tile || !tile.block) return false;
+    
+    // Block is part of chain if it has chain flag or was falling
+    if (tile.chain || tile.block.falling) {
+      return true;
+    }
+    
+    // Check if block is supported by a matched/exploding block below
+    if (row > 0) {
+      const belowTile = this.tiles[row - 1][col];
+      if (belowTile.type === TileType.BLOCK && belowTile.block) {
+        if (belowTile.block.state === BlockState.MATCHED || 
+            belowTile.block.state === BlockState.EXPLODING) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  // Phase 5: Group matched blocks into combo groups
+  private groupMatchesIntoCombo(matchedBlocks: Array<{row: number, col: number}>): Array<Array<{row: number, col: number}>> {
+    const groups: Array<Array<{row: number, col: number}>> = [];
+    const visited = new Set<string>();
+    
+    for (const block of matchedBlocks) {
+      const key = `${block.row},${block.col}`;
+      if (visited.has(key)) continue;
+      
+      // Find all connected matches of the same color
+      const group = this.findConnectedMatches(block.row, block.col, matchedBlocks, visited);
+      if (group.length > 0) {
+        groups.push(group);
+      }
+    }
+    
+    return groups;
+  }
+  
+  // Phase 5: Find connected matches of the same color (for combo detection)
+  private findConnectedMatches(
+    startRow: number, 
+    startCol: number, 
+    allMatches: Array<{row: number, col: number}>, 
+    visited: Set<string>
+  ): Array<{row: number, col: number}> {
+    const group: Array<{row: number, col: number}> = [];
+    const queue: Array<{row: number, col: number}> = [{row: startRow, col: startCol}];
+    const matchSet = new Set(allMatches.map(m => `${m.row},${m.col}`));
+    
+    const startTile = this.tiles[startRow][startCol];
+    if (!startTile.block) return group;
+    const targetColor = startTile.block.color;
+    
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current) break;
+      const key = `${current.row},${current.col}`;
+      
+      if (visited.has(key)) continue;
+      if (!matchSet.has(key)) continue;
+      
+      const tile = this.tiles[current.row][current.col];
+      if (!tile.block || tile.block.color !== targetColor) continue;
+      
+      visited.add(key);
+      group.push(current);
+      
+      // Add adjacent cells
+      const adjacent = [
+        {row: current.row + 1, col: current.col},
+        {row: current.row - 1, col: current.col},
+        {row: current.row, col: current.col + 1},
+        {row: current.row, col: current.col - 1}
+      ];
+      
+      for (const adj of adjacent) {
+        if (adj.row >= 0 && adj.row <= Board.TOP_ROW && 
+            adj.col >= 0 && adj.col < Board.BOARD_WIDTH) {
+          queue.push(adj);
+        }
+      }
+    }
+    
+    return group;
+  }
+  
+  // Phase 5: Enhanced score calculation with combo and chain bonuses
+  private calculateAdvancedScore(blockCount: number, comboCount: number): void {
+    // Base combo scoring: 10 × blocks × blocks
+    let comboScore = 10 * blockCount * blockCount;
+    
+    // Combo multiplier - additional bonuses for multiple combos
+    if (comboCount > 1) {
+      const comboMultiplier = 1 + (comboCount - 1) * 0.5; // 50% bonus per additional combo
+      const originalComboScore = comboScore;
+      comboScore = Math.floor(comboScore * comboMultiplier);
+      comboLog(`Combo multiplier! ${comboCount} combos × ${comboMultiplier.toFixed(2)} = ${originalComboScore} → ${comboScore} points`, 'score');
+    }
     
     // Chain scoring based on current chain counter
     let chainScore = 0;
@@ -829,9 +987,13 @@ export class Board {
       } else {
         chainScore = 1300 + (this.chainCounter - 11) * 200; // 1300+ for chain 11+
       }
+      comboLog(`Chain bonus! Chain ${this.chainCounter} = +${chainScore} points`, 'score');
     }
     
-    this.score += comboScore + chainScore;
+    const totalScore = comboScore + chainScore;
+    this.score += totalScore;
+    
+    console.log(`Score: +${totalScore} (combo: ${comboScore}, chain: ${chainScore}) = ${this.score}`);
   }
   
   // Get debug information
