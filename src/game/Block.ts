@@ -49,7 +49,9 @@ export class Block {
     // Handle float timer
     if (this.state === BlockState.FLOATING && this.floatTimer > 0) {
       this.floatTimer--;
-      if (this.floatTimer <= 0) {
+      // Don't automatically change to NORMAL if block is falling
+      // The Board will handle the state transition when the block lands
+      if (this.floatTimer <= 0 && !this.falling) {
         this.state = BlockState.NORMAL;
       }
     }

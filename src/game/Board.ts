@@ -1,6 +1,6 @@
 import { Block } from './Block';
 import { GarbageBlock, GarbageBlockType } from './GarbageBlock';
-import { BlockColor, BoardState, TileType } from './BlockTypes';
+import { BlockColor, BlockState, BoardState, TileType } from './BlockTypes';
 
 export interface Tile {
   type: TileType;
@@ -245,11 +245,18 @@ export class Board {
     // Update panic state
     this.updatePanicState();
     
+    // Phase 4: Core game mechanics
+    // First remove exploded blocks
+    this.handleExplosions();
+    // Then apply gravity to unsupported blocks
+    this.handleGravity();
+    // Finally check for new matches
+    this.handleMatching();
+    
     // Handle stack raising
     this.handleStackRaising();
     
-    // Game mechanics will be implemented in Phase 4
-    // For now, just update visual state
+    // Update visual state
     this.updateVisualState();
   }
   
@@ -439,6 +446,392 @@ export class Board {
   // Win the game
   public win(): void {
     this.state = BoardState.WON;
+  }
+  
+  // Phase 4: Handle gravity - blocks falling logic
+  private handleGravity(): void {
+    let blocksChanged = false;
+    
+    // Process from top to bottom so falling blocks don't interfere with each other
+    for (let row = Board.TOP_ROW; row >= 0; row--) {
+      for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+        const tile = this.tiles[row][col];
+        
+        if (tile.type === TileType.BLOCK && tile.block) {
+          const block = tile.block;
+          
+          // Skip blocks that are not in a falling-capable state
+          if (block.state === BlockState.SWAPPING_LEFT || 
+              block.state === BlockState.SWAPPING_RIGHT ||
+              block.state === BlockState.MATCHED ||
+              block.state === BlockState.EXPLODING) {
+            continue;
+          }
+          
+          // Check if block should start falling
+          if (block.state === BlockState.NORMAL && !block.falling && !this.hasSupport(row, col)) {
+            block.falling = true;
+            block.startFloat();
+            blocksChanged = true;
+            console.log(`Block at (${row}, ${col}) starting to fall - no support`);
+          }
+          
+          // Debug floating blocks
+          if (block.falling && block.state === BlockState.FLOATING) {
+            console.log(`Floating block at (${row}, ${col}) - timer: ${block.floatTimer}`);
+          }
+          
+          // Handle floating blocks that are ready to fall
+          if (block.falling && block.state === BlockState.FLOATING && block.floatTimer <= 0) {
+            // Fall as far as possible
+            const finalRow = this.fallToBottom(row, col);
+            if (finalRow < row) {
+              blocksChanged = true;
+              console.log(`Block falling from (${row}, ${col}) to (${finalRow}, ${col})`);
+            }
+            // Block stops falling when it reaches its final position
+            const finalTile = this.tiles[finalRow][col];
+            if (finalTile.block) {
+              finalTile.block.state = BlockState.NORMAL;
+              finalTile.block.falling = false;
+            }
+          }
+          
+          // Check if a falling block that's already normal needs to continue falling
+          if (block.falling && block.state === BlockState.NORMAL && !this.hasSupport(row, col)) {
+            // This block was marked as falling but hasn't moved yet, move it now
+            const finalRow = this.fallToBottom(row, col);
+            if (finalRow < row) {
+              blocksChanged = true;
+              console.log(`Continuing fall: Block from (${row}, ${col}) to (${finalRow}, ${col})`);
+            }
+            // Block stops falling when it reaches its final position
+            const finalTile = this.tiles[finalRow][col];
+            if (finalTile.block) {
+              finalTile.block.state = BlockState.NORMAL;
+              finalTile.block.falling = false;
+            }
+          }
+        }
+      }
+    }
+    
+    if (blocksChanged) {
+      this.activeBlocks = true;
+    }
+  }
+  
+  // Check if a block has support (block or board bottom below it)
+  private hasSupport(row: number, col: number): boolean {
+    // Bottom row always has support
+    if (row === 0) return true;
+    
+    const belowTile = this.tiles[row - 1][col];
+    
+    // Has support if there's a stable block below
+    if (belowTile.type === TileType.BLOCK && belowTile.block) {
+      const belowBlock = belowTile.block;
+      // Block provides support if it's not falling and not exploding
+      return !belowBlock.falling && 
+             belowBlock.state !== BlockState.EXPLODING &&
+             belowBlock.state !== BlockState.MATCHED;
+    }
+    
+    // Has support if there's garbage below
+    if (belowTile.type === TileType.GARBAGE) {
+      return true;
+    }
+    
+    return false;
+  }
+  
+  // Check if a block can fall down one row
+  private canFall(row: number, col: number): boolean {
+    if (row === 0) return false; // Can't fall below board
+    
+    const belowTile = this.tiles[row - 1][col];
+    return belowTile.type === TileType.AIR;
+  }
+  
+  // Move a block down one row
+  private moveBlockDown(row: number, col: number): void {
+    if (row === 0 || !this.canFall(row, col)) return;
+    
+    const currentTile = this.tiles[row][col];
+    const belowTile = this.tiles[row - 1][col];
+    
+    // Move the block down
+    belowTile.type = currentTile.type;
+    belowTile.block = currentTile.block;
+    belowTile.garbageRef = currentTile.garbageRef;
+    belowTile.chain = currentTile.chain;
+    
+    // Clear the original position
+    currentTile.type = TileType.AIR;
+    currentTile.block = null;
+    currentTile.garbageRef = null;
+    currentTile.chain = false;
+    
+    // If block reaches bottom or hits support, stop falling
+    if (!this.canFall(row - 1, col)) {
+      if (belowTile.block) {
+        belowTile.block.state = BlockState.NORMAL;
+        belowTile.block.falling = false;
+      }
+    }
+  }
+  
+  // Fall a block as far down as it can go
+  private fallToBottom(row: number, col: number): number {
+    if (row === 0) return row; // Already at bottom
+    
+    const currentTile = this.tiles[row][col];
+    if (!currentTile.block) return row;
+    
+    // Find the lowest row this block can reach
+    let targetRow = row;
+    for (let r = row - 1; r >= 0; r--) {
+      const tile = this.tiles[r][col];
+      if (tile.type === TileType.AIR) {
+        targetRow = r;
+      } else {
+        break; // Hit an obstacle
+      }
+    }
+    
+    // If block can fall, move it
+    if (targetRow < row) {
+      const targetTile = this.tiles[targetRow][col];
+      
+      // Move the block
+      targetTile.type = currentTile.type;
+      targetTile.block = currentTile.block;
+      targetTile.garbageRef = currentTile.garbageRef;
+      targetTile.chain = currentTile.chain;
+      
+      // Clear the original position
+      currentTile.type = TileType.AIR;
+      currentTile.block = null;
+      currentTile.garbageRef = null;
+      currentTile.chain = false;
+    }
+    
+    return targetRow;
+  }
+  
+  // Phase 4: Handle block matching
+  private handleMatching(): void {
+    const matchedBlocks: Array<{row: number, col: number}> = [];
+    
+    // Find all matches this tick
+    this.findMatches(matchedBlocks);
+    
+    if (matchedBlocks.length >= 3) {
+      console.log(`Found ${matchedBlocks.length} matched blocks:`, matchedBlocks);
+      this.tickMatched = matchedBlocks.length;
+      
+      // Mark matched blocks and set explosion timers
+      let explosionOrder = 0;
+      for (const match of matchedBlocks) {
+        const tile = this.tiles[match.row][match.col];
+        if (tile.block) {
+          tile.block.markMatched();
+          tile.block.explosionOrder = explosionOrder++;
+          
+          // Calculate explosion timing (base + additional per block)
+          const explosionTicks = Board.BASE_EXPLOSION_TICKS + 
+                               (Board.ADD_EXPLOSION_TICKS * tile.block.explosionOrder);
+          tile.block.startExplosion(explosionTicks);
+          
+          // Check if this is part of a chain
+          if (tile.chain || tile.block.falling) {
+            this.tickChain = true;
+          }
+        }
+      }
+      
+      // Update chain counter
+      if (this.tickChain) {
+        this.chainCounter++;
+      } else {
+        this.chainCounter = 1; // Reset to 1 for non-chain matches
+      }
+      
+      // Calculate score
+      this.calculateScore(matchedBlocks.length);
+      
+      // Mark first match position for effects
+      if (matchedBlocks.length > 0) {
+        this.tickMatchRow = matchedBlocks[0].row;
+        this.tickMatchCol = matchedBlocks[0].col;
+      }
+    }
+  }
+  
+  // Find all matching blocks on the board (horizontal and vertical lines)
+  private findMatches(matchedBlocks: Array<{row: number, col: number}>): void {
+    const marked = new Set<string>();
+    
+    // Find horizontal matches
+    for (let row = 0; row <= Board.TOP_ROW; row++) {
+      for (let col = 0; col < Board.BOARD_WIDTH - 2; col++) {
+        const matches = this.findHorizontalMatch(row, col);
+        if (matches.length >= 3) {
+          for (const match of matches) {
+            const key = `${match.row},${match.col}`;
+            if (!marked.has(key)) {
+              marked.add(key);
+              matchedBlocks.push(match);
+            }
+          }
+        }
+      }
+    }
+    
+    // Find vertical matches
+    for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+      for (let row = 0; row <= Board.TOP_ROW - 2; row++) {
+        const matches = this.findVerticalMatch(row, col);
+        if (matches.length >= 3) {
+          for (const match of matches) {
+            const key = `${match.row},${match.col}`;
+            if (!marked.has(key)) {
+              marked.add(key);
+              matchedBlocks.push(match);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Find horizontal match starting at given position
+  private findHorizontalMatch(row: number, startCol: number): Array<{row: number, col: number}> {
+    const matches: Array<{row: number, col: number}> = [];
+    
+    // Get the starting block
+    const startTile = this.tiles[row][startCol];
+    if (startTile.type !== TileType.BLOCK || !startTile.block || !startTile.block.canMatch()) {
+      return matches;
+    }
+    
+    const color = startTile.block.color;
+    matches.push({row, col: startCol});
+    
+    // Extend right as far as possible
+    for (let col = startCol + 1; col < Board.BOARD_WIDTH; col++) {
+      const tile = this.tiles[row][col];
+      if (tile.type === TileType.BLOCK && tile.block && tile.block.canMatch() && 
+          tile.block.color === color) {
+        matches.push({row, col});
+      } else {
+        break;
+      }
+    }
+    
+    return matches;
+  }
+  
+  // Find vertical match starting at given position
+  private findVerticalMatch(startRow: number, col: number): Array<{row: number, col: number}> {
+    const matches: Array<{row: number, col: number}> = [];
+    
+    // Get the starting block
+    const startTile = this.tiles[startRow][col];
+    if (startTile.type !== TileType.BLOCK || !startTile.block || !startTile.block.canMatch()) {
+      return matches;
+    }
+    
+    const color = startTile.block.color;
+    matches.push({row: startRow, col});
+    
+    // Extend up as far as possible
+    for (let row = startRow + 1; row <= Board.TOP_ROW; row++) {
+      const tile = this.tiles[row][col];
+      if (tile.type === TileType.BLOCK && tile.block && tile.block.canMatch() && 
+          tile.block.color === color) {
+        matches.push({row, col});
+      } else {
+        break;
+      }
+    }
+    
+    return matches;
+  }
+  
+  // Phase 4: Handle block explosions
+  private handleExplosions(): void {
+    const blocksToRemove: Array<{row: number, col: number}> = [];
+    
+    for (let row = 0; row <= Board.TOP_ROW; row++) {
+      for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+        const tile = this.tiles[row][col];
+        
+        if (tile.type === TileType.BLOCK && tile.block && 
+            tile.block.state === BlockState.EXPLODING) {
+          
+          // Check if explosion is complete
+          if (tile.block.explosionTimer >= tile.block.explosionTicks) {
+            blocksToRemove.push({row, col});
+          }
+        }
+      }
+    }
+    
+    // Remove exploded blocks
+    if (blocksToRemove.length > 0) {
+      console.log(`Removing ${blocksToRemove.length} exploded blocks:`, blocksToRemove);
+    }
+    for (const {row, col} of blocksToRemove) {
+      const tile = this.tiles[row][col];
+      if (tile.block) {
+        tile.block.dispose();
+      }
+      tile.type = TileType.AIR;
+      tile.block = null;
+      tile.garbageRef = null;
+      
+      // Mark blocks above as chain candidates and trigger falling
+      for (let r = row + 1; r <= Board.TOP_ROW; r++) {
+        const aboveTile = this.tiles[r][col];
+        if (aboveTile.type === TileType.BLOCK && aboveTile.block) {
+          aboveTile.chain = true;
+          // Immediately trigger falling for the block that lost support
+          if (!aboveTile.block.falling && aboveTile.block.state === BlockState.NORMAL) {
+            aboveTile.block.falling = true;
+            aboveTile.block.startFloat();
+            console.log(`Block at (${r}, ${col}) lost support, starting to fall - state: ${aboveTile.block.state}, floatTimer: ${aboveTile.block.floatTimer}`);
+          } else {
+            console.log(`Block at (${r}, ${col}) already falling or not normal - state: ${aboveTile.block.state}, falling: ${aboveTile.block.falling}`);
+          }
+        } else {
+          break; // Stop at first non-block
+        }
+      }
+    }
+    
+    if (blocksToRemove.length > 0) {
+      this.activeBlocks = true;
+    }
+  }
+  
+  // Calculate and add score from matches
+  private calculateScore(blockCount: number): void {
+    // Combo scoring: 10 × blocks × blocks
+    const comboScore = 10 * blockCount * blockCount;
+    
+    // Chain scoring based on current chain counter
+    let chainScore = 0;
+    if (this.chainCounter >= 2) {
+      const chainMultipliers = [0, 0, 50, 80, 150, 300, 400, 500, 700, 900, 1100];
+      if (this.chainCounter < chainMultipliers.length) {
+        chainScore = chainMultipliers[this.chainCounter];
+      } else {
+        chainScore = 1300 + (this.chainCounter - 11) * 200; // 1300+ for chain 11+
+      }
+    }
+    
+    this.score += comboScore + chainScore;
   }
   
   // Get debug information
