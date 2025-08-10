@@ -3,7 +3,6 @@ import { SceneManager } from '../rendering/SceneManager';
 import { AssetLoader } from '../assets/AssetLoader';
 import { GameController } from '../game/GameController';
 import { InputAction } from '../input/InputManager';
-import { debugLog } from '../debug/InputDebugger';
 
 export class GameEngine {
   private renderer: THREE.WebGLRenderer;
@@ -113,26 +112,12 @@ export class GameEngine {
   private tick(): void {
     this.ticksRun++;
     
-    // Log every 60 ticks (once per second)
-    if (this.ticksRun % 60 === 0) {
-      debugLog('GameEngine', `Tick ${this.ticksRun}, controller exists: ${!!this.gameController}`);
-      if (this.gameController) {
-        const cursor = this.sceneManager.getCursor();
-        if (cursor) {
-          const pos = cursor.getPosition();
-          debugLog('GameEngine', `Cursor position: (${pos.x}, ${pos.y})`);
-        }
-      }
-    }
-    
     // Update game controller (input handling)
     if (this.gameController) {
       this.gameController.tick();
       
       // Update cursor state based on game state
       this.gameController.updateCursorState();
-    } else if (this.ticksRun % 60 === 0) {
-      debugLog('GameEngine', 'WARNING: No game controller set!');
     }
     
     // Update game systems
