@@ -224,7 +224,39 @@ export class Board {
     }
     
     // Update garbage blocks
-    this.garbageBlocks.forEach(garbage => garbage.tick());
+    this.garbageBlocks.forEach(garbage => {
+      garbage.tick();
+      
+      // Check if garbage can fall
+      if (garbage.canFall((row, col) => this.getTile(row, col))) {
+        console.log(`Garbage block at (${garbage.x}, ${garbage.y}) is falling`);
+        
+        // Clear old tile references
+        for (let row = garbage.y; row < garbage.y + garbage.height; row++) {
+          for (let col = garbage.x; col < garbage.x + garbage.width; col++) {
+            const tile = this.getTile(row, col);
+            if (tile && tile.garbageRef === garbage) {
+              tile.type = TileType.AIR;
+              tile.garbageRef = null;
+            }
+          }
+        }
+        
+        // Move garbage down
+        garbage.fall();
+        
+        // Set new tile references
+        for (let row = garbage.y; row < garbage.y + garbage.height; row++) {
+          for (let col = garbage.x; col < garbage.x + garbage.width; col++) {
+            const tile = this.getTile(row, col);
+            if (tile) {
+              tile.type = TileType.GARBAGE;
+              tile.garbageRef = garbage;
+            }
+          }
+        }
+      }
+    });
   }
   
   // Handle countdown state
@@ -255,6 +287,9 @@ export class Board {
     
     // Update panic state
     this.updatePanicState();
+    
+    // Process garbage queue and spawning
+    this.processGarbageQueue();
     
     // Phase 4: Core game mechanics
     // First remove exploded blocks
@@ -372,7 +407,7 @@ export class Board {
       fullWidth,
       type,
       size,
-      spawnTimer: 80 // Spawn delay
+      spawnTimer: 10 // Reduced spawn delay for testing
     };
     this.garbageQueue.push(spawn);
   }
@@ -996,8 +1031,77 @@ export class Board {
     console.log(`Score: +${totalScore} (combo: ${comboScore}, chain: ${chainScore}) = ${this.score}`);
   }
   
+  // Process garbage spawn queue
+  private processGarbageQueue(): void {
+    // Update spawn timers
+    for (const spawn of this.garbageQueue) {
+      spawn.spawnTimer--;
+    }
+    
+    // Find ready spawns
+    const readySpawns = this.garbageQueue.filter(spawn => spawn.spawnTimer <= 0);
+    
+    // Remove ready spawns from queue
+    this.garbageQueue = this.garbageQueue.filter(spawn => spawn.spawnTimer > 0);
+    
+    // Spawn garbage blocks
+    for (const spawn of readySpawns) {
+      this.spawnGarbageBlock(spawn);
+    }
+  }
+  
+  // Spawn a garbage block on the board
+  private spawnGarbageBlock(spawn: GarbageSpawn): void {
+    const width = spawn.fullWidth ? Board.BOARD_WIDTH : spawn.size;
+    const height = 1; // Start with single-height garbage blocks
+    
+    // Find spawn position (top of board, centered if not full width)
+    let x = 0;
+    if (!spawn.fullWidth) {
+      x = Math.floor((Board.BOARD_WIDTH - width) / 2);
+    }
+    const y = Board.TOP_ROW + 5; // Spawn in buffer area above visible zone (row 16)
+    
+    // Check if spawn area is clear
+    let canSpawn = true;
+    
+    for (let row = y; row < y + height; row++) {
+      for (let col = x; col < x + width; col++) {
+        const tile = this.getTile(row, col);
+        if (!tile || tile.type !== TileType.AIR) {
+          canSpawn = false;
+          break;
+        }
+      }
+      if (!canSpawn) break;
+    }
+    
+    if (!canSpawn) {
+      console.log(`Cannot spawn garbage at (${x}, ${y}) - area blocked! Re-queueing...`);
+      // Re-queue with longer delay if can't spawn
+      spawn.spawnTimer = 60;
+      this.garbageQueue.push(spawn);
+      return;
+    }
+    
+    // Create garbage block
+    const garbageBlock = new GarbageBlock(x, y, width, height, spawn.type);
+    this.garbageBlocks.push(garbageBlock);
+    
+    // Mark tiles as occupied by garbage
+    for (let row = y; row < y + height; row++) {
+      for (let col = x; col < x + width; col++) {
+        const tile = this.tiles[row][col];
+        tile.type = TileType.GARBAGE;
+        tile.garbageRef = garbageBlock;
+      }
+    }
+    
+    console.log(`Spawned garbage block: ${width}x${height} at (${x}, ${y}) type=${spawn.type}`);
+  }
+  
   // Get debug information
   public getDebugInfo(): string {
-    return `Board: ${this.state}, Ticks: ${this.ticksRun}, Score: ${this.score}, Chain: ${this.chainCounter}`;
+    return `Board: ${this.state}, Ticks: ${this.ticksRun}, Score: ${this.score}, Chain: ${this.chainCounter}, Garbage: ${this.garbageBlocks.length}`;
   }
 }

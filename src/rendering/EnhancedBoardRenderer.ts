@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { Board, Tile } from '../game/Board';
 import { Block } from '../game/Block';
 import { Cursor } from '../game/Cursor';
-import { BLOCK_COLORS, BlockColor, TileType } from '../game/BlockTypes';
+import { BLOCK_COLORS, BlockColor, TileType, GARBAGE_COLORS } from '../game/BlockTypes';
+import { GarbageBlock, GarbageBlockState, GarbageBlockType } from '../game/GarbageBlock';
 import { AnimationManager } from '../animation/AnimationManager';
 
 export class EnhancedBoardRenderer {
@@ -21,6 +22,9 @@ export class EnhancedBoardRenderer {
   private blockGeometry: THREE.PlaneGeometry;
   private blockMaterials: Map<BlockColor, THREE.MeshLambertMaterial> = new Map();
   private blockMeshes: THREE.Mesh[][] = [];
+  
+  // Garbage block rendering
+  private garbageMaterials: Map<string, THREE.MeshLambertMaterial> = new Map();
   
   // Cursor rendering
   private cursorMesh: THREE.LineSegments | null = null;
@@ -54,6 +58,7 @@ export class EnhancedBoardRenderer {
     
     // Initialize rendering components
     this.initializeBlockMaterials();
+    this.initializeGarbageMaterials();
     this.initializeBlockMeshes();
     this.createGridBackground();
     this.createCursor(cursor);
@@ -70,6 +75,19 @@ export class EnhancedBoardRenderer {
         emissive: 0x000000,
       });
       this.blockMaterials.set(color, material);
+    });
+  }
+
+  // Initialize materials for garbage blocks
+  private initializeGarbageMaterials(): void {
+    Object.entries(GARBAGE_COLORS).forEach(([stateKey, colorValue]) => {
+      const material = new THREE.MeshLambertMaterial({
+        color: colorValue,
+        transparent: true,
+        opacity: 1.0,
+        emissive: 0x000000,
+      });
+      this.garbageMaterials.set(stateKey, material);
     });
   }
 
@@ -222,6 +240,8 @@ export class EnhancedBoardRenderer {
         
         if (tile && tile.type === TileType.BLOCK && tile.block) {
           this.updateBlockMesh(mesh, tile.block, tile, row, col);
+        } else if (tile && tile.type === TileType.GARBAGE && tile.garbageRef) {
+          this.updateGarbageMesh(mesh, tile.garbageRef, tile, row, col);
         } else {
           // Hide mesh if no block
           mesh.visible = false;
@@ -304,6 +324,56 @@ export class EnhancedBoardRenderer {
   private isBlockAnimating(block: Block): boolean {
     const animState = this.animationManager['blockAnimator'].getAnimationState(block);
     return !!(animState?.isFalling || animState?.isSwapping || animState?.isExploding || animState?.isFloating);
+  }
+
+  // Update individual garbage mesh
+  private updateGarbageMesh(mesh: THREE.Mesh, garbageBlock: GarbageBlock, tile: Tile, row: number, col: number): void {
+    // Show the mesh
+    mesh.visible = true;
+    
+    // Determine material based on garbage state
+    let materialKey = 'NORMAL';
+    if (garbageBlock.type === GarbageBlockType.GRAY) {
+      materialKey = 'GRAY';
+    }
+    if (garbageBlock.state === GarbageBlockState.TRIGGERED) {
+      materialKey = 'TRIGGERED';
+    } else if (garbageBlock.state === GarbageBlockState.TRANSFORMING) {
+      materialKey = 'TRANSFORMING';
+    }
+    
+    const material = this.garbageMaterials.get(materialKey);
+    if (material) {
+      mesh.material = material;
+    }
+    
+    // Reset mesh position to its base grid position
+    const baseX = col * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
+    const baseY = row * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
+    
+    mesh.position.x = baseX;
+    mesh.position.y = baseY;
+    
+    // Apply visual effects based on garbage state
+    mesh.scale.set(1, 1, 1);
+    mesh.rotation.z = 0;
+    
+    // Add transformation animation effect
+    if (garbageBlock.state === GarbageBlockState.TRANSFORMING) {
+      // Pulsing effect during transformation
+      const pulse = 1.0 + Math.sin(this.blinkTimer * 0.3) * 0.1;
+      mesh.scale.set(pulse, pulse, 1);
+    }
+    
+    // Add triggering flash effect
+    if (garbageBlock.state === GarbageBlockState.TRIGGERED) {
+      const flash = Math.sin(this.blinkTimer * 0.8) * 0.5 + 0.5;
+      if (material) {
+        material.emissive.setRGB(flash * 0.2, flash * 0.1, 0);
+      }
+    } else if (material) {
+      material.emissive.setHex(0x000000);
+    }
   }
 
   // Update stack rise visual effects
@@ -396,6 +466,9 @@ export class EnhancedBoardRenderer {
     // Dispose of materials
     this.blockMaterials.forEach(material => material.dispose());
     this.blockMaterials.clear();
+    
+    this.garbageMaterials.forEach(material => material.dispose());
+    this.garbageMaterials.clear();
     
     if (this.cursorMaterial) {
       this.cursorMaterial.dispose();

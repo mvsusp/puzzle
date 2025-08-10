@@ -37,6 +37,14 @@ export const BLOCK_COLORS = {
   [BlockColor.GREEN]: 0x27ae60,
 } as const;
 
+// Garbage block colors for rendering
+export const GARBAGE_COLORS = {
+  NORMAL: 0x7f8c8d,    // Gray color for normal garbage
+  GRAY: 0x34495e,      // Darker gray for gray garbage
+  TRIGGERED: 0xe67e22, // Orange when triggered
+  TRANSFORMING: 0xf39c12, // Bright orange when transforming
+} as const;
+
 // Color names for debugging
 export const BLOCK_COLOR_NAMES = {
   [BlockColor.PURPLE]: 'Purple',

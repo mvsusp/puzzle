@@ -50,6 +50,9 @@ export class GameController {
   public totalSwaps: number = 0;
   public totalRaises: number = 0;
   public totalMoves: number = 0;
+  
+  // Garbage drop cooldown
+  private lastGarbageDropTime: number = 0;
 
   constructor(board: Board, cursor: Cursor) {
     debugLog('GameController', 'Constructor called');
@@ -139,6 +142,17 @@ export class GameController {
           this.resetRaiseHold();
         }
         break;
+        
+      case InputAction.DROP_GARBAGE:
+        if (event.type === InputEventType.PRESSED || event.type === InputEventType.HELD) {
+          // Add cooldown to prevent spam (only allow one drop per 30 ticks / 0.5 seconds)
+          const currentTime = this.board.ticksRun;
+          if (currentTime - this.lastGarbageDropTime >= 30) {
+            this.handleGarbageDrop();
+            this.lastGarbageDropTime = currentTime;
+          }
+        }
+        break;
     }
   }
 
@@ -225,6 +239,27 @@ export class GameController {
     
     this.board.inputForceStackRaise();
     this.totalRaises++;
+  }
+  
+  // Handle garbage drop (for testing)
+  private handleGarbageDrop(): void {
+    if (this.board.state !== BoardState.RUNNING) {
+      return;
+    }
+    
+    // Queue a random garbage block for testing
+    const garbageTypes = ['NORMAL', 'GRAY'];
+    const randomType = garbageTypes[Math.floor(Math.random() * garbageTypes.length)];
+    const randomSize = Math.floor(Math.random() * 4) + 2; // 2-5 width
+    const fullWidth = Math.random() < 0.3;
+    
+    this.board.queueGarbage(
+      fullWidth,
+      randomSize,
+      randomType as 'NORMAL' | 'GRAY'
+    );
+    
+    console.log(`Garbage queued: ${fullWidth ? 'FULL-WIDTH' : randomSize + '-wide'} ${randomType}`);
   }
 
   // Handle pause input (when game is paused)

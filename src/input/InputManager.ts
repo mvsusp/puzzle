@@ -8,7 +8,8 @@ export enum InputAction {
   RIGHT = 'right',
   SWAP = 'swap',
   RAISE = 'raise',
-  PAUSE = 'pause'
+  PAUSE = 'pause',
+  DROP_GARBAGE = 'drop_garbage' // For testing garbage blocks
 }
 
 // Input event types
@@ -45,6 +46,7 @@ export class InputManager {
     ['KeyX', InputAction.SWAP],
     ['KeyZ', InputAction.RAISE],
     ['Escape', InputAction.PAUSE],
+    ['KeyQ', InputAction.DROP_GARBAGE], // For testing garbage blocks
     // Alternative bindings
     ['KeyW', InputAction.UP],
     ['KeyS', InputAction.DOWN],

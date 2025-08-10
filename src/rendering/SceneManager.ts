@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Board } from '../game/Board';
 import { BoardRenderer } from './BoardRenderer';
+import { EnhancedBoardRenderer } from './EnhancedBoardRenderer';
 import { Cursor } from '../game/Cursor';
 
 export class SceneManager {
@@ -15,7 +16,7 @@ export class SceneManager {
   
   // Game board
   private board: Board | null = null;
-  private boardRenderer: BoardRenderer | null = null;
+  private boardRenderer: BoardRenderer | EnhancedBoardRenderer | null = null;
   
   // Game cursor
   private cursor: Cursor | null = null;
@@ -97,8 +98,8 @@ export class SceneManager {
     // Create game board
     this.board = new Board();
     
-    // Create board renderer
-    this.boardRenderer = new BoardRenderer(this.board);
+    // Create enhanced board renderer for garbage block support
+    this.boardRenderer = new EnhancedBoardRenderer(this.board, this.cursor || undefined);
     
     // Position board in the center-left of the screen
     const boardGroup = this.boardRenderer.getBoardGroup();
