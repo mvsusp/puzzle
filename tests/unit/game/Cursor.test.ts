@@ -56,11 +56,11 @@ describe('Cursor', () => {
       expect(moved).toBe(true);
       expect(cursor.getPosition().x).toBe(0);
       
-      // Move left from left edge should wrap to right
+      // Move left from left edge should wrap to right (adjusted for 2-block cursor)
       const movedLeft = cursor.move(-1, 0);
       cursor.tick();
       expect(movedLeft).toBe(true);
-      expect(cursor.getPosition().x).toBe(Board.BOARD_WIDTH - 1);
+      expect(cursor.getPosition().x).toBe(Board.BOARD_WIDTH - 2); // 4 for 2-block cursor (spans blocks 4-5)
     });
 
     it('should clamp vertically at board edges', () => {
@@ -109,7 +109,7 @@ describe('Cursor', () => {
       
       cursor.setPosition(10, 25);
       cursor.tick();
-      expect(cursor.getPosition().x).toBe(Board.BOARD_WIDTH - 1);
+      expect(cursor.getPosition().x).toBe(Board.BOARD_WIDTH - 2); // 4 for 2-block cursor (spans blocks 4-5)
       expect(cursor.getPosition().y).toBe(Board.TOP_ROW);
     });
 
@@ -131,9 +131,16 @@ describe('Cursor', () => {
       expect(cursor.canSwap()).toBe(true);
     });
 
-    it('should not allow swap at right edge', () => {
-      cursor.setPosition(Board.BOARD_WIDTH - 1, 5);
-      expect(cursor.canSwap()).toBe(false);
+    it('should allow swap at all valid cursor positions', () => {
+      // With 2-block cursor, all valid positions (0-4) can swap since cursor spans 2 blocks
+      cursor.setPosition(Board.BOARD_WIDTH - 2, 5); // Position 4 (rightmost valid position)
+      expect(cursor.canSwap()).toBe(true); // Position 4 can swap blocks 4-5
+      
+      cursor.setPosition(0, 5); // Position 0 (leftmost position)
+      expect(cursor.canSwap()).toBe(true); // Position 0 can swap blocks 0-1
+      
+      cursor.setPosition(2, 5); // Middle position
+      expect(cursor.canSwap()).toBe(true); // Position 2 can swap blocks 2-3
     });
 
     it('should perform block swap successfully', () => {

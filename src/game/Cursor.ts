@@ -87,9 +87,10 @@ export class Cursor {
     this.mesh.add(wireframeMesh);
   }
 
-  // Update world positions based on grid coordinates
+  // Update world positions based on grid coordinates (adjusted for 2-block-wide cursor)
   private updateWorldPositions(): void {
-    this.targetWorldX = this.targetX * this.tileSize - (this.boardPixelWidth / 2) + (this.tileSize / 2);
+    // Position cursor so it's centered between two blocks
+    this.targetWorldX = this.targetX * this.tileSize - (this.boardPixelWidth / 2) + this.tileSize; // One tile offset to center over 2 blocks
     this.targetWorldY = this.targetY * this.tileSize - (this.boardPixelHeight / 2) + (this.tileSize / 2);
   }
 
@@ -102,11 +103,14 @@ export class Cursor {
     let finalX = newX;
     let finalY = newY;
     
-    // Horizontal wrapping
+    // Horizontal wrapping (adjusted for 2-block-wide cursor)
+    // Cursor can only be at positions 0-4 since it spans 2 blocks
+    const maxCursorX = Board.BOARD_WIDTH - 2; // 6 - 2 = 4 (cursor at 4 spans blocks 4-5)
+    
     if (finalX < 0) {
-      finalX = Board.BOARD_WIDTH - 1;
-    } else if (finalX >= Board.BOARD_WIDTH) {
-      finalX = 0;
+      finalX = maxCursorX; // Wrap to rightmost valid position
+    } else if (finalX > maxCursorX) {
+      finalX = 0; // Wrap to leftmost position
     }
     
     // Vertical clamping (no wrapping)
@@ -130,7 +134,9 @@ export class Cursor {
 
   // Set cursor position directly
   public setPosition(x: number, y: number): void {
-    this.targetX = Math.max(0, Math.min(Board.BOARD_WIDTH - 1, x));
+    // Clamp to valid bounds for 2-block-wide cursor (can only be at positions 0-4)
+    const maxCursorX = Board.BOARD_WIDTH - 2; // 6 - 2 = 4 (cursor at 4 spans blocks 4-5)
+    this.targetX = Math.max(0, Math.min(maxCursorX, x));
     this.targetY = Math.max(0, Math.min(Board.TOP_ROW, y));
     this.updateWorldPositions();
     
@@ -151,8 +157,10 @@ export class Cursor {
 
   // Check if cursor can swap at current position
   public canSwap(): boolean {
-    // Can swap if there's a block to the right
-    if (this.targetX >= Board.BOARD_WIDTH - 1) return false;
+    // With 2-block cursor, we can always swap since cursor spans 2 blocks
+    // and can never be positioned where there isn't a right block
+    const maxCursorX = Board.BOARD_WIDTH - 2; // Valid positions are 0-4
+    if (this.targetX > maxCursorX) return false; // Should never happen due to clamping
     
     const leftTile = this.board.getTile(this.targetY, this.targetX);
     const rightTile = this.board.getTile(this.targetY, this.targetX + 1);
