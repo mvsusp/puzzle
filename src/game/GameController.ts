@@ -70,15 +70,7 @@ export class GameController {
     // Update input manager
     this.inputManager.update();
     
-    // Check if any movement keys are pressed (for debugging)
-    const anyPressed = this.inputManager.isPressed(InputAction.UP) ||
-                      this.inputManager.isPressed(InputAction.DOWN) ||
-                      this.inputManager.isPressed(InputAction.LEFT) ||
-                      this.inputManager.isPressed(InputAction.RIGHT);
-    
-    if (anyPressed) {
-      debugLog('GameController', 'Keys currently pressed!');
-    }
+    // Input processing continues below
     
     // Process all input events
     const inputEvents = this.inputManager.getInputEvents();
