@@ -3,12 +3,17 @@ import { SceneManager } from '../rendering/SceneManager';
 import { AssetLoader } from '../assets/AssetLoader';
 import { GameController } from '../game/GameController';
 import { InputAction } from '../input/InputManager';
+import { StateManager } from './StateManager';
+import { UIManager } from '../ui/UIManager';
+import { StateTransition, StateUtils } from './GameState';
 
 export class GameEngine {
   private renderer: THREE.WebGLRenderer;
   private sceneManager: SceneManager;
   private assetLoader: AssetLoader;
   private gameController: GameController | null = null;
+  private stateManager: StateManager;
+  private uiManager: UIManager;
   private clock: THREE.Clock;
   private accumulator: number = 0;
   private readonly timestep: number = 1 / 60; // 60 FPS
@@ -21,6 +26,8 @@ export class GameEngine {
   private debugMode: boolean = false;
   
   constructor(canvas: HTMLCanvasElement) {
+    console.log('GameEngine: Constructor called');
+    
     // Initialize Three.js renderer
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -38,6 +45,13 @@ export class GameEngine {
     this.sceneManager = new SceneManager();
     this.assetLoader = new AssetLoader();
     
+    // Initialize Phase 9 systems
+    console.log('GameEngine: Initializing StateManager');
+    this.stateManager = StateManager.getInstance();
+    console.log('GameEngine: Initializing UIManager');
+    this.uiManager = UIManager.getInstance();
+    console.log('GameEngine: Phase 9 systems initialized');
+    
     // Set up event listeners
     this.setupEventListeners();
     
@@ -46,6 +60,8 @@ export class GameEngine {
       this.debugMode = true;
       this.setupDebugUI();
     }
+    
+    console.log('GameEngine: Constructor completed');
   }
   
   public async initialize(): Promise<void> {
@@ -56,8 +72,23 @@ export class GameEngine {
       // Initialize scene
       this.sceneManager.initialize();
       
-      // Hide loading screen
+      // Initialize UI manager
+      console.log('GameEngine: Calling uiManager.initialize()');
+      this.uiManager.initialize();
+      
+      // Initialize UI system (now that UIManager is ready to receive events)
+      console.log('GameEngine: Calling stateManager.initializeUI()');
+      this.stateManager.initializeUI();
+      
+      // Set up game components once scene is ready
+      this.setupGameComponents();
+      
+      // Hide loading screen and transition to title screen
       this.hideLoadingScreen();
+      
+      // Transition from loading to title screen
+      console.log('GameEngine: Requesting transition to LOADING_COMPLETE');
+      this.stateManager.requestTransition(StateTransition.LOADING_COMPLETE);
       
       console.log('GameEngine initialized successfully');
     } catch (error) {
@@ -79,6 +110,21 @@ export class GameEngine {
   public stop(): void {
     this.isRunning = false;
     console.log('GameEngine stopped');
+  }
+  
+  /**
+   * Set up game components (Phase 9 integration)
+   */
+  private setupGameComponents(): void {
+    const board = this.sceneManager.getBoard();
+    if (!board) {
+      throw new Error('Board not found in SceneManager');
+    }
+    
+    // Initialize the state manager with the board (for later when game controller is set)
+    // We'll connect the game controller when it's created in main.ts
+    
+    console.log('Game components set up for Phase 9');
   }
   
   private gameLoop(): void {
@@ -112,16 +158,26 @@ export class GameEngine {
   private tick(): void {
     this.ticksRun++;
     
-    // Update game controller (input handling)
-    if (this.gameController) {
-      this.gameController.tick();
+    // Update state management system
+    this.stateManager.tick();
+    
+    // Only update game systems if we're in a gameplay state
+    const currentState = this.stateManager.getCurrentState();
+    if (StateUtils.isGameplayState(currentState)) {
+      // Update game controller (input handling)
+      if (this.gameController) {
+        this.gameController.tick();
+        
+        // Update cursor state based on game state
+        this.gameController.updateCursorState();
+      }
       
-      // Update cursor state based on game state
-      this.gameController.updateCursorState();
+      // Update game systems
+      this.sceneManager.tick();
     }
     
-    // Update game systems
-    this.sceneManager.tick();
+    // Update UI system
+    this.uiManager.update();
   }
   
   private render(alpha: number): void {
@@ -279,6 +335,17 @@ export class GameEngine {
         visualEffectsElement.textContent = visualEffectsManager.getDebugInfo();
       }
     }
+    
+    // Update state management info (Phase 9)
+    const stateInfoElement = document.getElementById('stateManager');
+    if (stateInfoElement) {
+      stateInfoElement.textContent = this.stateManager.getDebugInfo();
+    }
+    
+    const uiInfoElement = document.getElementById('uiManager');
+    if (uiInfoElement) {
+      uiInfoElement.textContent = this.uiManager.getDebugInfo();
+    }
   }
   
   // Getters for debugging and testing
@@ -301,10 +368,25 @@ export class GameEngine {
   // Game controller management
   public setGameController(gameController: GameController): void {
     this.gameController = gameController;
+    
+    // Initialize state manager with board and game controller (Phase 9)
+    const board = this.sceneManager.getBoard();
+    if (board) {
+      this.stateManager.initialize(board, gameController);
+      console.log('StateManager initialized with board and game controller');
+    }
   }
   
   public getGameController(): GameController | null {
     return this.gameController;
+  }
+  
+  public getStateManager(): StateManager {
+    return this.stateManager;
+  }
+  
+  public getUIManager(): UIManager {
+    return this.uiManager;
   }
   
   // Input handling

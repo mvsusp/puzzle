@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Pop - UI Debug Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #222;
+            font-family: monospace;
+            color: white;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            z-index: 1000;
+        }
+        
+        #debugInfo {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            z-index: 1001;
+            display: block;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen">Loading...</div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="debugInfo">
+        <div><strong>Panel Pop - Debug Info</strong></div>
+        <div>FPS: <span id="fps">--</span></div>
+        <div>Frame Time: <span id="frameTime">--</span></div>
+        <div>Ticks: <span id="ticks">--</span></div>
+        <div><strong>State Manager:</strong> <span id="stateManager">--</span></div>
+        <div><strong>UI Manager:</strong> <span id="uiManager">--</span></div>
+        <div><strong>Game Controller:</strong> <span id="gameController">--</span></div>
+        <div><strong>Input Manager:</strong> <span id="inputManager">--</span></div>
+        <div><strong>Input States:</strong> <span id="inputStates">--</span></div>
+        <div><strong>Cursor:</strong> <span id="cursor">--</span></div>
+        <div><strong>Cursor Pos:</strong> <span id="cursorPos">--</span></div>
+        <div><strong>Board:</strong> <span id="board">--</span></div>
+        <div><strong>Board State:</strong> <span id="boardState">--</span></div>
+        <div><strong>Visual Effects:</strong> <span id="visualEffects">--</span></div>
+    </div>
+    
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

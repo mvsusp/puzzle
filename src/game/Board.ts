@@ -1100,6 +1100,78 @@ export class Board {
     console.log(`Spawned garbage block: ${width}x${height} at (${x}, ${y}) type=${spawn.type}`);
   }
   
+  /**
+   * Reset the board for a new game (Phase 9)
+   */
+  public resetForNewGame(): void {
+    // Reset all game state
+    this.state = BoardState.COUNTDOWN;
+    this.ticksRun = 0;
+    this.score = 0;
+    this.chainCounter = 1;
+    this.lastChain = 0;
+    this.panic = false;
+    
+    // Reset cursor position
+    this.cursorX = 2;
+    this.cursorY = 5;
+    
+    // Reset stack management
+    this.stackOffset = 0;
+    this.stackRaiseTicks = 300;
+    this.stackRaiseTimer = 0;
+    this.stackRaiseForced = false;
+    
+    // Reset game mechanics state
+    this.graceTimer = 180;
+    this.activeBlocks = false;
+    
+    // Reset per-tick state
+    this.tickMatched = 0;
+    this.tickChain = false;
+    this.tickChainEnd = false;
+    this.tickMatchRow = -1;
+    this.tickMatchCol = -1;
+    this.tickComboSize = 0;
+    this.tickChainLength = 0;
+    this.lastTickHadMatches = false;
+    this.consecutiveNonMatchTicks = 0;
+    
+    // Reset visual state
+    this.warnColumns.fill(false);
+    this.blockOnTopRow = false;
+    this.countdownState = 3;
+    
+    // Clear all tiles
+    for (let row = 0; row < Board.BOARD_HEIGHT; row++) {
+      for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+        const tile = this.tiles[row][col];
+        tile.type = TileType.AIR;
+        tile.block = null;
+        tile.garbageRef = null;
+        tile.chain = false;
+      }
+    }
+    
+    // Clear buffer row
+    for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+      const tile = this.bufferRow[col];
+      tile.type = TileType.AIR;
+      tile.block = null;
+      tile.garbageRef = null;
+      tile.chain = false;
+    }
+    
+    // Clear garbage blocks and queue
+    this.garbageBlocks.length = 0;
+    this.garbageQueue.length = 0;
+    
+    // Initialize new board with starting blocks
+    this.initializeBoard();
+    
+    console.log('Board reset for new game');
+  }
+
   // Get debug information
   public getDebugInfo(): string {
     return `Board: ${this.state}, Ticks: ${this.ticksRun}, Score: ${this.score}, Chain: ${this.chainCounter}, Garbage: ${this.garbageBlocks.length}`;

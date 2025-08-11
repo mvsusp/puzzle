@@ -4,6 +4,8 @@ import { InputManager, InputAction, InputEvent, InputEventType } from '../input/
 import { BoardState } from './BlockTypes';
 import { GarbageBlockType } from './GarbageBlock';
 import { debugLog } from '../debug/InputDebugger';
+import { StateManager } from '../core/StateManager';
+import { StateTransition, GameState, StateUtils } from '../core/GameState';
 
 // Game controller state
 export enum GameControllerState {
@@ -276,13 +278,21 @@ export class GameController {
     }
   }
 
-  // Toggle pause state
+  // Toggle pause state (Phase 9 - integrate with StateManager)
   private togglePause(): void {
-    if (this.state === GameControllerState.RUNNING) {
-      this.state = GameControllerState.PAUSED;
-      this.resetAllHoldCounters();
-    } else if (this.state === GameControllerState.PAUSED) {
-      this.state = GameControllerState.RUNNING;
+    const stateManager = StateManager.getInstance();
+    const currentState = stateManager.getCurrentState();
+    
+    // Only allow pausing during gameplay states
+    if (StateUtils.isGameplayState(currentState)) {
+      if (currentState === GameState.GAME_RUNNING) {
+        stateManager.requestTransition(StateTransition.PAUSE_GAME);
+        this.state = GameControllerState.PAUSED;
+        this.resetAllHoldCounters();
+      } else if (currentState === GameState.GAME_PAUSED) {
+        stateManager.requestTransition(StateTransition.RESUME_GAME);
+        this.state = GameControllerState.RUNNING;
+      }
     }
   }
 
