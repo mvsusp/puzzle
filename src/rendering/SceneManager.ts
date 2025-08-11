@@ -3,6 +3,7 @@ import { Board } from '../game/Board';
 import { BoardRenderer } from './BoardRenderer';
 import { EnhancedBoardRenderer } from './EnhancedBoardRenderer';
 import { Cursor } from '../game/Cursor';
+import { VisualEffectsManager } from '../effects/VisualEffectsManager';
 
 export class SceneManager {
   private scene: THREE.Scene;
@@ -20,6 +21,9 @@ export class SceneManager {
   
   // Game cursor
   private cursor: Cursor | null = null;
+  
+  // Visual effects
+  private visualEffectsManager: VisualEffectsManager | null = null;
   
   // Test sprite for Phase 1 (remove in Phase 2)
   private testSprite: THREE.Mesh | null = null;
@@ -101,6 +105,25 @@ export class SceneManager {
     // Create enhanced board renderer for garbage block support
     this.boardRenderer = new EnhancedBoardRenderer(this.board, this.cursor || undefined);
     
+    // Initialize visual effects manager
+    this.visualEffectsManager = new VisualEffectsManager(
+      this.scene,
+      this.camera,
+      this.board,
+      {
+        enableParticles: true,
+        enablePopups: true,
+        enableScreenShake: true,
+        particleCount: 200,
+        maxPopups: 50
+      }
+    );
+    
+    // Connect visual effects to the board renderer
+    if (this.boardRenderer instanceof EnhancedBoardRenderer) {
+      this.boardRenderer.setVisualEffectsManager(this.visualEffectsManager);
+    }
+    
     // Position board in the center-left of the screen
     const boardGroup = this.boardRenderer.getBoardGroup();
     boardGroup.position.set(-100, 0, 0); // Offset left to leave room for UI
@@ -175,7 +198,7 @@ export class SceneManager {
   }
   
   // Get board renderer for external access
-  public getBoardRenderer(): BoardRenderer | null {
+  public getBoardRenderer(): BoardRenderer | EnhancedBoardRenderer | null {
     return this.boardRenderer;
   }
   
@@ -211,6 +234,11 @@ export class SceneManager {
   public getCursor(): Cursor | null {
     return this.cursor;
   }
+  
+  // Get visual effects manager
+  public getVisualEffectsManager(): VisualEffectsManager | null {
+    return this.visualEffectsManager;
+  }
 
   // Method to remove test sprite when moving to Phase 3
   public removeTestSprite(): void {
@@ -226,6 +254,12 @@ export class SceneManager {
   
   // Clean up resources
   public dispose(): void {
+    // Clean up visual effects manager
+    if (this.visualEffectsManager) {
+      this.visualEffectsManager.dispose();
+      this.visualEffectsManager = null;
+    }
+    
     // Clean up cursor
     if (this.cursor) {
       this.cursor.dispose();

@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { Board, Tile } from '../game/Board';
 import { Block } from '../game/Block';
 import { Cursor } from '../game/Cursor';
-import { BLOCK_COLORS, BlockColor, TileType, GARBAGE_COLORS } from '../game/BlockTypes';
+import { BLOCK_COLORS, BlockColor, TileType, GARBAGE_COLORS, BlockState } from '../game/BlockTypes';
 import { GarbageBlock, GarbageBlockState, GarbageBlockType } from '../game/GarbageBlock';
 import { AnimationManager } from '../animation/AnimationManager';
+import { VisualEffectsManager, MatchEventData, GarbageEventData } from '../effects/VisualEffectsManager';
 
 export class EnhancedBoardRenderer {
   // Rendering constants
@@ -15,6 +16,7 @@ export class EnhancedBoardRenderer {
   private board: Board;
   private boardGroup: THREE.Group;
   private animationManager: AnimationManager;
+  private visualEffectsManager: VisualEffectsManager | null = null;
   private gridMesh: THREE.Mesh | null = null;
   private gridLines: THREE.Line[] = [];
   
@@ -32,6 +34,15 @@ export class EnhancedBoardRenderer {
   
   // Visual effects
   private blinkTimer: number = 0;
+  
+  // Game state tracking for effects
+  private lastBoardState = {
+    score: 0,
+    chainCounter: 1,
+    tickMatched: 0,
+    tickComboSize: 0,
+    panic: false
+  };
 
   constructor(board: Board, cursor?: Cursor) {
     this.board = board;
@@ -213,12 +224,23 @@ export class EnhancedBoardRenderer {
     }
   }
 
+  // Set visual effects manager
+  public setVisualEffectsManager(effectsManager: VisualEffectsManager): void {
+    this.visualEffectsManager = effectsManager;
+  }
+
   // Main render update with enhanced animations
   public tick(): void {
     this.blinkTimer++;
     
     // Update animation manager (handles all animations)
     this.animationManager.tick();
+    
+    // Update visual effects
+    if (this.visualEffectsManager) {
+      this.visualEffectsManager.tick();
+      this.checkForGameEvents();
+    }
     
     // Update block visuals
     this.updateBlockVisuals();
@@ -393,6 +415,100 @@ export class EnhancedBoardRenderer {
     // The cursor position and effects should be handled by CursorAnimator
   }
 
+  // Check for game events and trigger visual effects
+  private checkForGameEvents(): void {
+    if (!this.visualEffectsManager) return;
+
+    const currentState = {
+      score: this.board.score,
+      chainCounter: this.board.getChainCounter(),
+      tickMatched: this.board.tickMatched,
+      tickComboSize: this.board.tickComboSize,
+      panic: this.board.panic
+    };
+
+    // Check for match events
+    if (currentState.tickMatched > 0) {
+      this.triggerMatchEffects(currentState);
+    }
+
+    // Check for panic mode changes
+    if (currentState.panic !== this.lastBoardState.panic) {
+      if (currentState.panic) {
+        this.visualEffectsManager.onSpecialEvent('panic_start');
+      } else {
+        this.visualEffectsManager.onSpecialEvent('panic_end');
+      }
+    }
+
+    // Check for garbage events
+    this.checkForGarbageEvents();
+
+    // Update last state
+    this.lastBoardState = { ...currentState };
+  }
+
+  // Trigger match-related visual effects
+  private triggerMatchEffects(currentState: {
+    score: number;
+    chainCounter: number;
+    tickMatched: number;
+    tickComboSize: number;
+    panic: boolean;
+  }): void {
+    if (!this.visualEffectsManager) return;
+
+    // Collect all matched blocks and their positions
+    const matchedBlocks: Block[] = [];
+    const matchedPositions: THREE.Vector3[] = [];
+
+    // Find currently matched or exploding blocks
+    for (let row = 0; row <= Board.TOP_ROW; row++) {
+      for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+        const tile = this.board.getTile(row, col);
+        if (tile && tile.type === TileType.BLOCK && tile.block && 
+            (tile.block.state === BlockState.MATCHED || tile.block.state === BlockState.EXPLODING)) {
+          matchedBlocks.push(tile.block);
+          matchedPositions.push(this.boardToWorldPosition(row, col));
+        }
+      }
+    }
+
+    if (matchedBlocks.length > 0) {
+      // Calculate score for this match
+      const scoreDifference = currentState.score - this.lastBoardState.score;
+
+      const eventData: MatchEventData = {
+        blocks: matchedBlocks,
+        positions: matchedPositions,
+        isChain: currentState.chainCounter > 1,
+        chainLength: currentState.chainCounter > 1 ? currentState.chainCounter : undefined,
+        comboSize: currentState.tickComboSize > 1 ? currentState.tickComboSize : undefined,
+        score: scoreDifference > 0 ? scoreDifference : 0
+      };
+
+      this.visualEffectsManager.onBlockMatch(eventData);
+    }
+  }
+
+  // Check for garbage block events
+  private checkForGarbageEvents(): void {
+    if (!this.visualEffectsManager) return;
+
+    // Check for transforming garbage blocks
+    const garbageBlocks = (this.board as { garbageBlocks: GarbageBlock[] }).garbageBlocks || [];
+    garbageBlocks.forEach((garbage: GarbageBlock) => {
+      if (garbage.state === GarbageBlockState.TRANSFORMING && this.visualEffectsManager) {
+        const eventData: GarbageEventData = {
+          position: this.boardToWorldPosition(garbage.y + garbage.height / 2, garbage.x + garbage.width / 2),
+          size: garbage.width * garbage.height,
+          type: 'transform'
+        };
+        this.visualEffectsManager.onGarbageEvent(eventData);
+      }
+    });
+  }
+
   // Trigger stack rise animation
   public triggerStackRise(onComplete?: () => void): void {
     this.animationManager.startStackRise(onComplete);
@@ -438,13 +554,19 @@ export class EnhancedBoardRenderer {
     };
   }
 
-  // Convert board coordinates to world position
+  // Convert board coordinates to world position (accounting for board group offset)
   public boardToWorldPosition(row: number, col: number): THREE.Vector3 {
-    return new THREE.Vector3(
-      col * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2),
-      row * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2),
-      1
-    );
+    // Calculate position relative to board
+    const boardRelativeX = col * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
+    const boardRelativeY = row * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
+    
+    // Add the board group's world position offset
+    const worldPosition = this.boardGroup.position.clone();
+    worldPosition.x += boardRelativeX;
+    worldPosition.y += boardRelativeY;
+    worldPosition.z = 1;
+    
+    return worldPosition;
   }
 
   // Get animation debug info
@@ -454,6 +576,11 @@ export class EnhancedBoardRenderer {
 
   // Clean up resources
   public dispose(): void {
+    // Dispose visual effects manager
+    if (this.visualEffectsManager) {
+      this.visualEffectsManager.dispose();
+    }
+    
     // Dispose animation manager
     this.animationManager.dispose();
     

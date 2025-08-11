@@ -2,6 +2,7 @@ import { Board } from './Board';
 import { Cursor } from './Cursor';
 import { InputManager, InputAction, InputEvent, InputEventType } from '../input/InputManager';
 import { BoardState } from './BlockTypes';
+import { GarbageBlockType } from './GarbageBlock';
 import { debugLog } from '../debug/InputDebugger';
 
 // Game controller state
@@ -248,7 +249,7 @@ export class GameController {
     }
     
     // Queue a random garbage block for testing
-    const garbageTypes = ['NORMAL', 'GRAY'];
+    const garbageTypes = [GarbageBlockType.NORMAL, GarbageBlockType.GRAY];
     const randomType = garbageTypes[Math.floor(Math.random() * garbageTypes.length)];
     const randomSize = Math.floor(Math.random() * 4) + 2; // 2-5 width
     const fullWidth = Math.random() < 0.3;
@@ -256,7 +257,7 @@ export class GameController {
     this.board.queueGarbage(
       fullWidth,
       randomSize,
-      randomType as 'NORMAL' | 'GRAY'
+      randomType
     );
     
     console.log(`Garbage queued: ${fullWidth ? 'FULL-WIDTH' : randomSize + '-wide'} ${randomType}`);

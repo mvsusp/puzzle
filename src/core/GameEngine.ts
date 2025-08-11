@@ -270,6 +270,15 @@ export class GameEngine {
         boardStateElement.textContent = `State: ${board.state} | Panic: ${board.isPanic()} | Score: ${board.getScore()}`;
       }
     }
+    
+    // Update visual effects info
+    const visualEffectsManager = sceneManager.getVisualEffectsManager();
+    if (visualEffectsManager) {
+      const visualEffectsElement = document.getElementById('visualEffects');
+      if (visualEffectsElement) {
+        visualEffectsElement.textContent = visualEffectsManager.getDebugInfo();
+      }
+    }
   }
   
   // Getters for debugging and testing
