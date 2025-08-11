@@ -145,7 +145,7 @@ export class GameOverScreen extends BaseUIComponent {
     button.appendChild(buttonText);
     
     // Click handler
-    button.onclick = () => {
+    button.onclick = (): void => {
       this.selectedOption = index;
       this.updateSelection();
       action();

@@ -132,7 +132,7 @@ export class OptionsMenu extends BaseUIComponent {
       {
         label: 'Configure Controls',
         type: 'action',
-        action: () => {
+        action: (): void => {
           console.log('Control configuration not implemented yet');
           // TODO: Implement in Phase 13 (Configuration & Persistence)
         }
@@ -155,7 +155,7 @@ export class OptionsMenu extends BaseUIComponent {
   }
   
   private createOptionItems(): void {
-    this.options.forEach((option, index) => {
+    this.options.forEach((option, index): void => {
       const optionElement = this.createOptionElement(option, index);
       this.menuContainer.appendChild(optionElement);
       this.optionElements.push(optionElement);

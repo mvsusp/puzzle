@@ -118,8 +118,11 @@ export class GarbageBlock {
     
     for (const pos of positions) {
       const tile = getTile(pos.row, pos.col);
-      if (tile && tile.type === TileType.BLOCK && tile.block?.state === BlockState.MATCHED) {
-        return true;
+      if (tile && typeof tile === 'object' && 'type' in tile && 'block' in tile) {
+        const typedTile = tile as { type: TileType; block: Block | null };
+        if (typedTile.type === TileType.BLOCK && typedTile.block?.state === BlockState.MATCHED) {
+          return true;
+        }
       }
     }
     
@@ -150,8 +153,11 @@ export class GarbageBlock {
     // Check if any part of the bottom edge has support
     for (let col = this.x; col < this.x + this.width; col++) {
       const tileBelow = getTile(this.y - 1, col);
-      if (tileBelow && tileBelow.type !== TileType.AIR) {
-        return false; // Has support, can't fall
+      if (tileBelow && typeof tileBelow === 'object' && 'type' in tileBelow) {
+        const typedTile = tileBelow as { type: TileType };
+        if (typedTile.type !== TileType.AIR) {
+          return false; // Has support, can't fall
+        }
       }
     }
     

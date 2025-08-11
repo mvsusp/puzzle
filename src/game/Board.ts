@@ -1172,6 +1172,11 @@ export class Board {
     console.log('Board reset for new game');
   }
 
+  // Get garbage blocks (for renderer)
+  public getGarbageBlocks(): GarbageBlock[] {
+    return this.garbageBlocks;
+  }
+  
   // Get debug information
   public getDebugInfo(): string {
     return `Board: ${this.state}, Ticks: ${this.ticksRun}, Score: ${this.score}, Chain: ${this.chainCounter}, Garbage: ${this.garbageBlocks.length}`;

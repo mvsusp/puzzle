@@ -482,8 +482,8 @@ export class EnhancedBoardRenderer {
         blocks: matchedBlocks,
         positions: matchedPositions,
         isChain: currentState.chainCounter > 1,
-        chainLength: currentState.chainCounter > 1 ? currentState.chainCounter : undefined,
-        comboSize: currentState.tickComboSize > 1 ? currentState.tickComboSize : undefined,
+        chainLength: currentState.chainCounter,
+        comboSize: currentState.tickComboSize,
         score: scoreDifference > 0 ? scoreDifference : 0
       };
 
@@ -496,7 +496,7 @@ export class EnhancedBoardRenderer {
     if (!this.visualEffectsManager) return;
 
     // Check for transforming garbage blocks
-    const garbageBlocks = (this.board as { garbageBlocks: GarbageBlock[] }).garbageBlocks || [];
+    const garbageBlocks = this.board.getGarbageBlocks();
     garbageBlocks.forEach((garbage: GarbageBlock) => {
       if (garbage.state === GarbageBlockState.TRANSFORMING && this.visualEffectsManager) {
         const eventData: GarbageEventData = {

@@ -34,7 +34,7 @@ export class TitleScreen extends BaseUIComponent {
       height: '100%',
       background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
       display: 'flex',
-      flexDirection: 'column' as any,
+      flexDirection: 'column' as const,
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: '1500',
@@ -119,20 +119,20 @@ export class TitleScreen extends BaseUIComponent {
       });
       
       // Click handler
-      optionElement.onclick = () => {
+      optionElement.onclick = (): void => {
         this.selectedOption = index;
         this.updateMenuSelection();
         this.selectCurrentOption();
       };
       
       // Hover effects
-      optionElement.onmouseenter = () => {
+      optionElement.onmouseenter = (): void => {
         if (index !== this.selectedOption) {
           optionElement.style.color = '#f39c12';
         }
       };
       
-      optionElement.onmouseleave = () => {
+      optionElement.onmouseleave = (): void => {
         if (index !== this.selectedOption) {
           optionElement.style.color = '#ecf0f1';
         }

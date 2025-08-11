@@ -213,7 +213,7 @@ export class ScoreHUD extends BaseUIComponent {
     // Animate upward and fade out
     let y = 0;
     let opacity = 1;
-    const animate = () => {
+    const animate = (): void => {
       y -= 2;
       opacity -= 0.05;
       scorePopup.style.top = `${y}px`;

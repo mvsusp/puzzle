@@ -82,7 +82,7 @@ export class MainMenu extends BaseUIComponent {
       },
       {
         text: 'VS Computer',
-        action: () => {
+        action: (): void => {
           console.log('VS Computer mode not implemented yet');
           // TODO: Implement in Phase 11 (Game Modes)
         }
@@ -103,7 +103,7 @@ export class MainMenu extends BaseUIComponent {
   }
   
   private createMenuItems(): void {
-    this.menuOptions.forEach((option, index) => {
+    this.menuOptions.forEach((option, index): void => {
       const menuItem = this.createMenuButton(option.text, option.action, index);
       this.menuContainer.appendChild(menuItem);
     });
@@ -133,20 +133,20 @@ export class MainMenu extends BaseUIComponent {
     button.appendChild(buttonText);
     
     // Click handler
-    button.onclick = () => {
+    button.onclick = (): void => {
       this.selectedOption = index;
       this.updateSelection();
       action();
     };
     
     // Mouse enter/leave for visual feedback
-    button.onmouseenter = () => {
+    button.onmouseenter = (): void => {
       if (index !== this.selectedOption) {
         button.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
       }
     };
     
-    button.onmouseleave = () => {
+    button.onmouseleave = (): void => {
       if (index !== this.selectedOption) {
         button.style.backgroundColor = 'transparent';
       }

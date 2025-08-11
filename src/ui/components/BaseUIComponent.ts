@@ -8,10 +8,10 @@
 import { UIComponent, UILayer } from '../UIManager';
 
 export abstract class BaseUIComponent implements UIComponent {
-  public element: HTMLElement;
+  public element!: HTMLElement;
   public isVisible: boolean = false;
   
-  protected container: HTMLElement;
+  protected container!: HTMLElement;
   protected layer: UILayer;
   
   constructor(layer: UILayer = UILayer.HUD, autoInit: boolean = true) {
@@ -266,7 +266,7 @@ export abstract class BaseUIComponent implements UIComponent {
     if (styles) {
       for (const [key, value] of Object.entries(styles)) {
         if (value !== undefined && value !== null) {
-          (container.style as any)[key] = value;
+          (container.style as unknown as Record<string, string>)[key] = String(value);
         }
       }
     }
