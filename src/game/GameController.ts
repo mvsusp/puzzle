@@ -6,6 +6,7 @@ import { GarbageBlockType } from './GarbageBlock';
 import { debugLog } from '../debug/InputDebugger';
 import { StateManager } from '../core/StateManager';
 import { StateTransition, GameState, StateUtils } from '../core/GameState';
+import { AudioSystem } from '../audio/AudioSystem';
 
 // Game controller state
 export enum GameControllerState {
@@ -35,6 +36,7 @@ export class GameController {
   private board: Board;
   private cursor: Cursor;
   private inputManager: InputManager;
+  private audioSystem: AudioSystem | null = null;
   
   // State management
   public state: GameControllerState = GameControllerState.RUNNING;
@@ -57,11 +59,12 @@ export class GameController {
   // Garbage drop cooldown
   private lastGarbageDropTime: number = 0;
 
-  constructor(board: Board, cursor: Cursor) {
+  constructor(board: Board, cursor: Cursor, audioSystem?: AudioSystem) {
     debugLog('GameController', 'Constructor called');
     this.board = board;
     this.cursor = cursor;
     this.inputManager = new InputManager();
+    this.audioSystem = audioSystem || null;
     debugLog('GameController', 'GameController initialized');
   }
 
@@ -205,23 +208,32 @@ export class GameController {
   }
 
   // Handle cursor movement
-  private handleCursorMove(deltaX: number, deltaY: number): void {
-    debugLog('GameController', `handleCursorMove: deltaX=${deltaX}, deltaY=${deltaY}, boardState=${this.board.state}`);
+  private handleCursorMove(dx: number, dy: number): void {
+    debugLog('GameController', `handleCursorMove: dx=${dx}, dy=${dy}, boardState=${this.board.state}`);
     
     if (this.board.state !== BoardState.RUNNING) {
       debugLog('GameController', `Board not running (state=${this.board.state}), skipping move`);
       return;
+    }
+    if (this.board.hasActiveBlocks()) {
+      debugLog('GameController', 'Board has active blocks, skipping move');
+      return; // Don't move during animations
     }
     if (this.cursor.isMoving()) {
       debugLog('GameController', 'Cursor is moving, skipping move');
       return; // Wait for smooth movement to finish
     }
     
-    const moved = this.cursor.move(deltaX, deltaY);
+    const moved = this.cursor.move(dx, dy);
     debugLog('GameController', `Cursor move result: ${moved}`);
     if (moved) {
       this.totalMoves++;
       debugLog('GameController', `Total moves: ${this.totalMoves}`);
+      
+      // Play cursor move sound
+      if (this.audioSystem) {
+        this.audioSystem.playSfx('cursor');
+      }
     }
   }
 
@@ -233,6 +245,10 @@ export class GameController {
     const swapped = this.cursor.swap();
     if (swapped) {
       this.totalSwaps++;
+      // Play swap sound
+      if (this.audioSystem) {
+        this.audioSystem.playSfx('swap');
+      }
     }
   }
 
@@ -289,9 +305,17 @@ export class GameController {
         stateManager.requestTransition(StateTransition.PAUSE_GAME);
         this.state = GameControllerState.PAUSED;
         this.resetAllHoldCounters();
+        // Play pause sound
+        if (this.audioSystem) {
+          this.audioSystem.playSfx('pause');
+        }
       } else if (currentState === GameState.GAME_PAUSED) {
         stateManager.requestTransition(StateTransition.RESUME_GAME);
         this.state = GameControllerState.RUNNING;
+        // Play pause sound (resume uses same sound)
+        if (this.audioSystem) {
+          this.audioSystem.playSfx('pause');
+        }
       }
     }
   }

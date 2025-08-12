@@ -6,6 +6,7 @@ import { InputAction } from '../input/InputManager';
 import { StateManager } from './StateManager';
 import { UIManager } from '../ui/UIManager';
 import { StateTransition, StateUtils } from './GameState';
+import { AudioSystem } from '../audio/AudioSystem';
 
 export class GameEngine {
   private renderer: THREE.WebGLRenderer;
@@ -14,6 +15,7 @@ export class GameEngine {
   private gameController: GameController | null = null;
   private stateManager: StateManager;
   private uiManager: UIManager;
+  private audioSystem: AudioSystem;
   private clock: THREE.Clock;
   private accumulator: number = 0;
   private readonly timestep: number = 1 / 60; // 60 FPS
@@ -52,6 +54,11 @@ export class GameEngine {
     this.uiManager = UIManager.getInstance();
     console.log('GameEngine: Phase 9 systems initialized');
     
+    // Initialize Phase 10 systems (Audio)
+    console.log('GameEngine: Initializing AudioSystem');
+    this.audioSystem = new AudioSystem();
+    console.log('GameEngine: Phase 10 systems initialized');
+    
     // Set up event listeners
     this.setupEventListeners();
     
@@ -79,6 +86,13 @@ export class GameEngine {
       // Initialize UI system (now that UIManager is ready to receive events)
       console.log('GameEngine: Calling stateManager.initializeUI()');
       this.stateManager.initializeUI();
+      
+      // Initialize audio system (Phase 10)
+      console.log('GameEngine: Initializing AudioSystem');
+      await this.audioSystem.initialize();
+      
+      // Pass audio system to scene manager before initializing board
+      this.sceneManager.setAudioSystem(this.audioSystem);
       
       // Set up game components once scene is ready
       this.setupGameComponents();
@@ -176,6 +190,9 @@ export class GameEngine {
       this.sceneManager.tick();
     }
     
+    // Update audio system (Phase 10)
+    this.audioSystem.update();
+    
     // Update UI system
     this.uiManager.update();
   }
@@ -196,10 +213,24 @@ export class GameEngine {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         this.clock.stop();
+        this.audioSystem.suspend();
       } else {
         this.clock.start();
+        this.audioSystem.resume();
       }
     });
+    
+    // Initialize audio on user interaction (required by browsers)
+    const initAudio = async (): Promise<void> => {
+      await this.audioSystem.resume();
+      document.removeEventListener('click', initAudio);
+      document.removeEventListener('keydown', initAudio);
+      document.removeEventListener('touchstart', initAudio);
+    };
+    
+    document.addEventListener('click', initAudio, { once: true });
+    document.addEventListener('keydown', initAudio, { once: true });
+    document.addEventListener('touchstart', initAudio, { once: true });
   }
   
   private handleResize(): void {
@@ -346,6 +377,13 @@ export class GameEngine {
     if (uiInfoElement) {
       uiInfoElement.textContent = this.uiManager.getDebugInfo();
     }
+    
+    // Update audio system info (Phase 10)
+    const audioInfoElement = document.getElementById('audioSystem');
+    if (audioInfoElement) {
+      const audioInfo = this.audioSystem.getDebugInfo();
+      audioInfoElement.textContent = `Audio: ${audioInfo.initialized ? 'Ready' : 'Not Ready'} | Music: ${audioInfo.currentTrack || 'None'} | SFX: ${audioInfo.playingSfxCount}`;
+    }
   }
   
   // Getters for debugging and testing
@@ -372,8 +410,8 @@ export class GameEngine {
     // Initialize state manager with board and game controller (Phase 9)
     const board = this.sceneManager.getBoard();
     if (board) {
-      this.stateManager.initialize(board, gameController);
-      console.log('StateManager initialized with board and game controller');
+      this.stateManager.initialize(board, gameController, this.audioSystem);
+      console.log('StateManager initialized with board, game controller, and audio system');
     }
   }
   
@@ -387,6 +425,10 @@ export class GameEngine {
   
   public getUIManager(): UIManager {
     return this.uiManager;
+  }
+  
+  public getAudioSystem(): AudioSystem {
+    return this.audioSystem;
   }
   
   // Input handling

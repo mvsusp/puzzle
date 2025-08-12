@@ -45,6 +45,7 @@ class Application {
     if (!this.gameEngine) return;
     
     const sceneManager = this.gameEngine.getSceneManager();
+    const audioSystem = this.gameEngine.getAudioSystem();
     
     // Get the existing board from scene manager
     const board = sceneManager.getBoard();
@@ -55,8 +56,8 @@ class Application {
     // Create cursor
     const cursor = new Cursor(board, BoardRenderer.TILE_SIZE);
     
-    // Create game controller
-    const gameController = new GameController(board, cursor);
+    // Create game controller with audio system
+    const gameController = new GameController(board, cursor, audioSystem);
     
     // Set up cursor in scene
     sceneManager.setCursor(cursor);

@@ -18,6 +18,7 @@ import {
 import { Board } from '../game/Board';
 import { GameController, GameControllerState } from '../game/GameController';
 import { BoardState } from '../game/BlockTypes';
+import { AudioSystem } from '../audio/AudioSystem';
 
 /**
  * Event interface for state manager events
@@ -54,6 +55,7 @@ export class StateManager {
   // Game components (injected)
   private board: Board | null = null;
   private gameController: GameController | null = null;
+  private audioSystem: AudioSystem | null = null;
   
   // UI state
   private activeUIOverlays: Set<UIOverlay> = new Set();
@@ -93,9 +95,10 @@ export class StateManager {
   /**
    * Initialize the state manager with game components
    */
-  public initialize(board: Board, gameController: GameController): void {
+  public initialize(board: Board, gameController: GameController, audioSystem?: AudioSystem): void {
     this.board = board;
     this.gameController = gameController;
+    this.audioSystem = audioSystem || null;
     
     console.log('StateManager initialized with game components');
   }
@@ -195,6 +198,9 @@ export class StateManager {
     
     // Enter new state
     this.enterState(newState);
+    
+    // Handle music transitions
+    this.handleMusicTransition(oldState, newState);
     
     // Update UI overlays
     this.updateUIOverlays();
@@ -485,6 +491,58 @@ export class StateManager {
         console.error(`Error in event listener ${index}:`, error);
       }
     });
+  }
+  
+  /**
+   * Handle music transitions between game states
+   */
+  private handleMusicTransition(oldState: GameState, newState: GameState): void {
+    if (!this.audioSystem || !this.audioSystem.isReady()) {
+      return;
+    }
+
+    console.log(`StateManager: Handling music transition from ${oldState} to ${newState}`);
+
+    switch (newState) {
+      case GameState.TITLE_SCREEN:
+        if (oldState === GameState.LOADING) {
+          // Play title intro then loop
+          this.audioSystem.playMusic('title_intro', 1.0);
+        } else {
+          // Direct to title loop
+          this.audioSystem.playMusic('title_loop', 1.0);
+        }
+        break;
+        
+      case GameState.GAME_COUNTDOWN:
+        // Start battle music
+        this.audioSystem.crossfadeMusic('battle_normal', 2.0);
+        break;
+        
+      case GameState.GAME_RUNNING:
+        if (oldState === GameState.GAME_PAUSED) {
+          // Resume music
+          this.audioSystem.resumeMusic();
+        } else {
+          // Start battle music
+          this.audioSystem.crossfadeMusic('battle_normal', 2.0);
+        }
+        break;
+        
+      case GameState.GAME_PAUSED:
+        // Pause music
+        this.audioSystem.pauseMusic();
+        break;
+        
+      case GameState.GAME_OVER:
+        // Stop music
+        this.audioSystem.stopMusic(2.0);
+        break;
+        
+      default:
+        // For other states, keep current music
+        break;
+    }
   }
   
   // Public getters

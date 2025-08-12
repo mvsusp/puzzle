@@ -4,6 +4,7 @@ import { BoardRenderer } from './BoardRenderer';
 import { EnhancedBoardRenderer } from './EnhancedBoardRenderer';
 import { Cursor } from '../game/Cursor';
 import { VisualEffectsManager } from '../effects/VisualEffectsManager';
+import { AudioSystem } from '../audio/AudioSystem';
 
 export class SceneManager {
   private scene: THREE.Scene;
@@ -24,6 +25,9 @@ export class SceneManager {
   
   // Visual effects
   private visualEffectsManager: VisualEffectsManager | null = null;
+  
+  // Audio system
+  private audioSystem: AudioSystem | null = null;
   
   // Test sprite for Phase 1 (remove in Phase 2)
   private testSprite: THREE.Mesh | null = null;
@@ -100,7 +104,7 @@ export class SceneManager {
   // Initialize game board and renderer
   private initializeGameBoard(): void {
     // Create game board
-    this.board = new Board();
+    this.board = new Board(this.audioSystem || undefined);
     
     // Create enhanced board renderer for garbage block support
     this.boardRenderer = new EnhancedBoardRenderer(this.board, this.cursor || undefined);
@@ -200,6 +204,11 @@ export class SceneManager {
   // Get board renderer for external access
   public getBoardRenderer(): BoardRenderer | EnhancedBoardRenderer | null {
     return this.boardRenderer;
+  }
+  
+  // Set audio system
+  public setAudioSystem(audioSystem: AudioSystem): void {
+    this.audioSystem = audioSystem;
   }
   
   // Add cursor to the scene

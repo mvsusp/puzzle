@@ -2,6 +2,7 @@ import { Block } from './Block';
 import { GarbageBlock, GarbageBlockType } from './GarbageBlock';
 import { BlockColor, BlockState, BoardState, TileType } from './BlockTypes';
 import { comboLog } from '../debug/ComboDebugger';
+import { AudioSystem } from '../audio/AudioSystem';
 
 export interface Tile {
   type: TileType;
@@ -79,7 +80,11 @@ export class Board {
   // Countdown state
   public countdownState: number = 3; // 3, 2, 1, 0 (GO)
   
-  constructor() {
+  // Audio system
+  private audioSystem: AudioSystem | null = null;
+  
+  constructor(audioSystem?: AudioSystem) {
+    this.audioSystem = audioSystem || null;
     // Initialize tile grid
     this.tiles = Array(Board.BOARD_HEIGHT).fill(null).map(() =>
       Array(Board.BOARD_WIDTH).fill(null).map(() => this.createEmptyTile())
@@ -245,6 +250,16 @@ export class Board {
         // Move garbage down
         garbage.fall();
         
+        // Play thump sound for garbage landing
+        if (this.audioSystem) {
+          const size = garbage.width * garbage.height;
+          if (size >= 6) {
+            this.audioSystem.playSfx('bigthump');
+          } else {
+            this.audioSystem.playSfx('thump');
+          }
+        }
+        
         // Set new tile references
         for (let row = garbage.y; row < garbage.y + garbage.height; row++) {
           for (let col = garbage.x; col < garbage.x + garbage.width; col++) {
@@ -336,7 +351,19 @@ export class Board {
       }
     }
     
+    const wasPanic = this.panic;
     this.panic = maxHeight >= Board.PANIC_HEIGHT;
+    
+    // Handle panic music transition
+    if (this.panic !== wasPanic && this.audioSystem) {
+      if (this.panic) {
+        // Entered panic mode - switch to panic music
+        this.audioSystem.crossfadeMusic('battle_panic', 1.0);
+      } else {
+        // Exited panic mode - switch back to normal music
+        this.audioSystem.crossfadeMusic('battle_normal', 1.0);
+      }
+    }
     
     // Update warning columns
     for (let col = 0; col < Board.BOARD_WIDTH; col++) {
@@ -726,6 +753,12 @@ export class Board {
         this.chainCounter++;
         this.tickChainLength = this.chainCounter;
         comboLog(`Chain extended to ${this.chainCounter}! ${matchedBlocks.length} chain blocks matched`, 'chain');
+        
+        // Play chain sound effect
+        if (this.audioSystem) {
+          this.audioSystem.playChain(this.chainCounter, matchedBlocks.length);
+        }
+        
       } else if (this.chainCounter > 1) {
         // Chain continues with non-chain match (shouldn't happen but handle gracefully)
         this.chainCounter = 1;
@@ -736,6 +769,11 @@ export class Board {
         this.chainCounter = 1;
         this.tickChainLength = 1;
         comboLog(`Regular match (no chain) - ${matchedBlocks.length} blocks`, 'match');
+        
+        // Play combo sound for regular matches
+        if (this.audioSystem && matchedBlocks.length >= 4) {
+          this.audioSystem.playSfx('combo');
+        }
       }
       
       // Calculate score with enhanced combo/chain system
