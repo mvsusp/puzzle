@@ -1215,6 +1215,153 @@ export class Board {
     return this.garbageBlocks;
   }
   
+  // Game Mode Support Methods (Phase 11)
+  
+  /**
+   * Set stack raising speed (ticks between raises)
+   */
+  public setStackRaiseSpeed(ticks: number): void {
+    this.stackRaiseTicks = Math.max(1, ticks);
+  }
+  
+  /**
+   * Get current stack raising speed
+   */
+  public getStackRaiseSpeed(): number {
+    return this.stackRaiseTicks;
+  }
+  
+  /**
+   * Enable/disable automatic stack raising
+   */
+  public setAutoRaise(enabled: boolean): void {
+    if (enabled) {
+      this.stackRaiseTimer = this.stackRaiseTicks; // Reset timer when enabling
+    } else {
+      this.stackRaiseTimer = 0; // Disable when not enabled
+    }
+  }
+  
+  /**
+   * Enable/disable garbage spawning
+   */
+  public setGarbageSpawningEnabled(enabled: boolean): void {
+    if (!enabled) {
+      // Clear any queued garbage
+      this.garbageQueue.length = 0;
+    }
+  }
+  
+  /**
+   * Check if the board has active matches
+   */
+  public hasActiveMatches(): boolean {
+    for (let row = 0; row < Board.BOARD_HEIGHT; row++) {
+      for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+        const tile = this.tiles[row][col];
+        if (tile.block && (tile.block.state === BlockState.MATCHED || tile.block.state === BlockState.EXPLODING)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  /**
+   * Check if the board has floating blocks
+   */
+  public hasFloatingBlocks(): boolean {
+    for (let row = 0; row < Board.BOARD_HEIGHT; row++) {
+      for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+        const tile = this.tiles[row][col];
+        if (tile.block && tile.block.state === BlockState.FLOATING) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  /**
+   * Get highest occupied row
+   */
+  public getHighestOccupiedRow(): number {
+    for (let row = Board.BOARD_HEIGHT - 1; row >= 0; row--) {
+      for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+        const tile = this.tiles[row][col];
+        if (tile.type !== TileType.AIR) {
+          return row;
+        }
+      }
+    }
+    return -1; // Empty board
+  }
+  
+  /**
+   * Find suitable spawn row for garbage block
+   */
+  public findGarbageSpawnRow(height: number): number {
+    // Find the topmost area with enough space
+    for (let startRow = Board.BOARD_HEIGHT - height; startRow >= Board.TOP_ROW + 1; startRow--) {
+      let canSpawn = true;
+      
+      // Check if all rows for this garbage block are clear
+      for (let checkRow = startRow; checkRow < startRow + height; checkRow++) {
+        for (let col = 0; col < Board.BOARD_WIDTH; col++) {
+          if (this.tiles[checkRow][col].type !== TileType.AIR) {
+            canSpawn = false;
+            break;
+          }
+        }
+        if (!canSpawn) break;
+      }
+      
+      if (canSpawn) {
+        return startRow;
+      }
+    }
+    
+    return -1; // No space available
+  }
+  
+  /**
+   * Add garbage block to the board
+   */
+  public addGarbageBlock(garbageBlock: GarbageBlock): void {
+    this.garbageBlocks.push(garbageBlock);
+    
+    // Mark tiles as occupied by garbage
+    for (let row = garbageBlock.y; row < garbageBlock.y + garbageBlock.height; row++) {
+      for (let col = garbageBlock.x; col < garbageBlock.x + garbageBlock.width; col++) {
+        if (row >= 0 && row < Board.BOARD_HEIGHT && col >= 0 && col < Board.BOARD_WIDTH) {
+          const tile = this.tiles[row][col];
+          tile.type = TileType.GARBAGE;
+          tile.garbageRef = garbageBlock;
+        }
+      }
+    }
+  }
+  
+  /**
+   * Check if game is over (board topped out)
+   */
+  public isGameOver(): boolean {
+    return this.state === BoardState.GAME_OVER;
+  }
+  
+  /**
+   * Reset board to a good starting state
+   */
+  public resetToStartingState(): void {
+    this.resetForNewGame();
+    // Could add additional setup specific to demo mode if needed
+  }
+  
+  /**
+   * Chain/combo completion callback (for game modes)
+   */
+  public onChainComplete?: (chainLength: number, comboSize: number) => void;
+  
   // Get debug information
   public getDebugInfo(): string {
     return `Board: ${this.state}, Ticks: ${this.ticksRun}, Score: ${this.score}, Chain: ${this.chainCounter}, Garbage: ${this.garbageBlocks.length}`;

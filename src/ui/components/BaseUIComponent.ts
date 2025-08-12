@@ -5,7 +5,7 @@
  * for visibility, styling, event handling, and lifecycle management.
  */
 
-import { UIComponent, UILayer } from '../UIManager';
+import { UIComponent, UILayer } from '../UITypes';
 
 export abstract class BaseUIComponent implements UIComponent {
   public element!: HTMLElement;

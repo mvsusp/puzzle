@@ -13,12 +13,14 @@ import {
   StateUtils,
   UIOverlay,
   MenuType,
-  CountdownState
+  CountdownState,
+  GameMode
 } from './GameState';
 import { Board } from '../game/Board';
 import { GameController, GameControllerState } from '../game/GameController';
 import { BoardState } from '../game/BlockTypes';
 import { AudioSystem } from '../audio/AudioSystem';
+import { GameModeManager } from '../game/GameModeManager';
 
 /**
  * Event interface for state manager events
@@ -47,6 +49,7 @@ export class StateManager {
   private previousState: GameState = GameState.LOADING;
   private transitionInProgress: boolean = false;
   private stateData: StateData = {};
+  private currentGameMode: GameMode = GameMode.ENDLESS;
   
   // Listeners and callbacks
   private stateChangeListeners: StateChangeListener[] = [];
@@ -93,12 +96,24 @@ export class StateManager {
   }
   
   /**
+   * Reset singleton instance (FOR TESTING ONLY)
+   */
+  public static resetInstance(): void {
+    console.log('StateManager: Resetting singleton instance (TEST ONLY)');
+    StateManager.instance = null;
+  }
+  
+  /**
    * Initialize the state manager with game components
    */
   public initialize(board: Board, gameController: GameController, audioSystem?: AudioSystem): void {
     this.board = board;
     this.gameController = gameController;
     this.audioSystem = audioSystem || null;
+    
+    // Initialize the GameModeManager
+    const gameModeManager = GameModeManager.getInstance();
+    gameModeManager.initialize(board, gameController);
     
     console.log('StateManager initialized with game components');
   }
@@ -122,6 +137,10 @@ export class StateManager {
    * Main update loop - called every tick
    */
   public tick(): void {
+    // Update game mode manager
+    const gameModeManager = GameModeManager.getInstance();
+    gameModeManager.update();
+    
     // Handle state-specific ticking
     switch (this.currentState) {
       case GameState.TITLE_SCREEN:
@@ -134,7 +153,7 @@ export class StateManager {
         this.tickGameRunning();
         break;
       case GameState.DEMO:
-        // Demo state is handled by the game controller
+        // Demo state is handled by the game mode manager
         break;
     }
     
@@ -227,6 +246,8 @@ export class StateManager {
     switch (transition) {
       case StateTransition.LOADING_COMPLETE:
         return GameState.TITLE_SCREEN;
+      case StateTransition.SHOW_MAIN_MENU:
+        return GameState.MAIN_MENU;
       case StateTransition.START_GAME:
         return GameState.GAME_COUNTDOWN;
       case StateTransition.SHOW_OPTIONS:
@@ -267,6 +288,10 @@ export class StateManager {
         console.log('StateManager: Setting up TITLE_SCREEN state');
         this.currentMenu = MenuType.MAIN;
         this.demoTimeoutTicks = 0;
+        break;
+      case GameState.MAIN_MENU:
+        console.log('StateManager: Setting up MAIN_MENU state');
+        this.currentMenu = MenuType.MAIN;
         break;
       case GameState.GAME_COUNTDOWN:
         this.countdownState = CountdownState.THREE;
@@ -387,7 +412,12 @@ export class StateManager {
     
     // Reset board state
     this.board.resetForNewGame();
-    console.log('Game board initialized for new game');
+    
+    // Initialize the appropriate game mode
+    const gameModeManager = GameModeManager.getInstance();
+    gameModeManager.startMode(this.currentGameMode);
+    
+    console.log(`Game board initialized for new game with mode: ${this.currentGameMode}`);
   }
   
   /**
@@ -578,8 +608,24 @@ export class StateManager {
     }
   }
   
+  // Game mode methods
+  public setGameMode(gameMode: GameMode): void {
+    this.currentGameMode = gameMode;
+    console.log(`StateManager: Game mode set to ${gameMode}`);
+  }
+  
+  public getCurrentGameMode(): GameMode {
+    return this.currentGameMode;
+  }
+  
+  // Input handling (for idle detection)
+  public onUserInput(): void {
+    const gameModeManager = GameModeManager.getInstance();
+    gameModeManager.onUserInput();
+  }
+  
   // Debug methods
   public getDebugInfo(): string {
-    return `State: ${this.currentState} | Previous: ${this.previousState} | Transitioning: ${this.transitionInProgress} | Menu: ${this.currentMenu || 'none'}`;
+    return `State: ${this.currentState} | Previous: ${this.previousState} | Mode: ${this.currentGameMode} | Transitioning: ${this.transitionInProgress} | Menu: ${this.currentMenu || 'none'}`;
   }
 }

@@ -7,6 +7,7 @@
 
 import { GameState, UIOverlay } from '../core/GameState';
 import { StateManager, StateManagerEvent } from '../core/StateManager';
+import { UIComponent } from './UITypes';
 import { ScoreHUD } from './components/ScoreHUD';
 import { CountdownOverlay } from './components/CountdownOverlay';
 import { MainMenu } from './components/MainMenu';
@@ -15,28 +16,6 @@ import { GameOverScreen } from './components/GameOverScreen';
 import { OptionsMenu } from './components/OptionsMenu';
 import { TitleScreen } from './components/TitleScreen';
 
-/**
- * UI Component interface - all UI components must implement this
- */
-export interface UIComponent {
-  element: HTMLElement;
-  isVisible: boolean;
-  show(): void;
-  hide(): void;
-  update(data?: Record<string, unknown>): void;
-  destroy(): void;
-}
-
-/**
- * UI Layer types for proper z-indexing
- */
-export enum UILayer {
-  BACKGROUND = 100,
-  HUD = 200,
-  MENU = 300,
-  OVERLAY = 400,
-  MODAL = 500
-}
 
 /**
  * Main UI Manager class

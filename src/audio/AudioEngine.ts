@@ -216,9 +216,11 @@ export class AudioEngine {
 
     const masterVolume = this.settings.enabled ? this.settings.masterVolume : 0;
     
-    this.masterGain.gain.setValueAtTime(masterVolume, this.context!.currentTime);
-    this.musicGain.gain.setValueAtTime(this.settings.musicVolume, this.context!.currentTime);
-    this.sfxGain.gain.setValueAtTime(this.settings.sfxVolume, this.context!.currentTime);
+    if (this.context) {
+      this.masterGain.gain.setValueAtTime(masterVolume, this.context.currentTime);
+      this.musicGain.gain.setValueAtTime(this.settings.musicVolume, this.context.currentTime);
+      this.sfxGain.gain.setValueAtTime(this.settings.sfxVolume, this.context.currentTime);
+    }
   }
 
   /**

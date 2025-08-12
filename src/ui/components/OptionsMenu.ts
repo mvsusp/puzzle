@@ -6,7 +6,7 @@
  */
 
 import { BaseUIComponent } from './BaseUIComponent';
-import { UILayer } from '../UIManager';
+import { UILayer } from '../UITypes';
 import { StateManager } from '../../core/StateManager';
 import { StateTransition } from '../../core/GameState';
 import { AudioSystem } from '../../audio/AudioSystem';

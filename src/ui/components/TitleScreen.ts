@@ -6,7 +6,7 @@
  */
 
 import { BaseUIComponent } from './BaseUIComponent';
-import { UILayer } from '../UIManager';
+import { UILayer } from '../UITypes';
 import { StateManager } from '../../core/StateManager';
 import { StateTransition } from '../../core/GameState';
 
@@ -187,7 +187,7 @@ export class TitleScreen extends BaseUIComponent {
     
     switch (this.selectedOption) {
       case 0: // Start Game
-        stateManager.requestTransition(StateTransition.START_GAME);
+        stateManager.requestTransition(StateTransition.SHOW_MAIN_MENU);
         break;
       case 1: // Options
         stateManager.requestTransition(StateTransition.SHOW_OPTIONS);

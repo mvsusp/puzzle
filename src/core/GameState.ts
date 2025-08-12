@@ -36,6 +36,7 @@ export enum StateTransition {
   LOADING_COMPLETE = 'loading_complete',
   
   // From title screen
+  SHOW_MAIN_MENU = 'show_main_menu',
   START_GAME = 'start_game',
   SHOW_OPTIONS = 'show_options',
   SHOW_DEMO = 'show_demo',
@@ -138,6 +139,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
   
   [GameState.TITLE_SCREEN]: {
     allowedTransitions: [
+      StateTransition.SHOW_MAIN_MENU,
       StateTransition.START_GAME,
       StateTransition.SHOW_OPTIONS,
       StateTransition.SHOW_DEMO
@@ -149,6 +151,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     allowedTransitions: [
       StateTransition.START_GAME,
       StateTransition.SHOW_OPTIONS,
+      StateTransition.SHOW_DEMO,
       StateTransition.BACK_TO_TITLE
     ],
     showUI: [],

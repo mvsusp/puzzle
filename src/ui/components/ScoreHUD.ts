@@ -6,7 +6,7 @@
  */
 
 import { BaseUIComponent } from './BaseUIComponent';
-import { UILayer } from '../UIManager';
+import { UILayer } from '../UITypes';
 import { StateManager } from '../../core/StateManager';
 
 export class ScoreHUD extends BaseUIComponent {

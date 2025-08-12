@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug UI State</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #222;
+            color: #fff;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-family: monospace;
+            cursor: pointer;
+        }
+        .debug-info {
+            border: 1px solid #555;
+            padding: 15px;
+            margin: 10px 0;
+            background: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>UI State Debug Tool</h1>
+    
+    <div class="debug-info">
+        <h3>Current State Info:</h3>
+        <div id="state-info">Loading...</div>
+    </div>
+    
+    <div>
+        <h3>Manual State Transitions:</h3>
+        <button onclick="goToTitleScreen()">Go to Title Screen</button>
+        <button onclick="goToMainMenu()">Go to Main Menu</button>
+        <button onclick="startEndlessMode()">Start Endless Mode</button>
+        <button onclick="startVSAI()">Start VS AI</button>
+        <button onclick="startVSHuman()">Start VS Human</button>
+    </div>
+    
+    <div class="debug-info">
+        <h3>Console Output:</h3>
+        <div id="console-output" style="height: 200px; overflow-y: scroll; border: 1px solid #666; padding: 10px; font-size: 12px;"></div>
+    </div>
+
+    <script type="module">
+        import { StateManager } from './src/core/StateManager.js';
+        import { UIManager } from './src/ui/UIManager.js';
+        import { GameState, StateTransition, GameMode } from './src/core/GameState.js';
+        
+        // Capture console.log for debugging
+        const originalLog = console.log;
+        const consoleOutput = document.getElementById('console-output');
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            consoleOutput.innerHTML += args.join(' ') + '<br>';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+        
+        let stateManager, uiManager;
+        
+        try {
+            console.log('Initializing managers...');
+            stateManager = StateManager.getInstance();
+            uiManager = UIManager.getInstance();
+            console.log('Managers initialized');
+            
+            // Initialize UI
+            stateManager.initializeUI();
+            console.log('UI initialized');
+        } catch (error) {
+            console.log('Error during initialization:', error);
+        }
+        
+        function updateStateInfo() {
+            const stateInfo = document.getElementById('state-info');
+            if (stateManager) {
+                stateInfo.innerHTML = `
+                    <strong>Current State:</strong> ${stateManager.getCurrentState()}<br>
+                    <strong>Previous State:</strong> ${stateManager.getPreviousState()}<br>
+                    <strong>Current Game Mode:</strong> ${stateManager.getCurrentGameMode()}<br>
+                    <strong>Debug Info:</strong> ${stateManager.getDebugInfo()}<br>
+                `;
+            } else {
+                stateInfo.innerHTML = 'StateManager not available';
+            }
+        }
+        
+        // Global functions for buttons
+        window.goToTitleScreen = () => {
+            console.log('Requesting transition to title screen...');
+            const result = stateManager.requestTransition(StateTransition.LOADING_COMPLETE);
+            console.log('Transition result:', result);
+            updateStateInfo();
+        };
+        
+        window.goToMainMenu = () => {
+            console.log('Requesting transition to main menu...');
+            const result = stateManager.requestTransition(StateTransition.SHOW_MAIN_MENU);
+            console.log('Transition result:', result);
+            updateStateInfo();
+        };
+        
+        window.startEndlessMode = () => {
+            console.log('Starting endless mode...');
+            stateManager.setGameMode(GameMode.ENDLESS);
+            const result = stateManager.requestTransition(StateTransition.START_GAME);
+            console.log('Transition result:', result);
+            updateStateInfo();
+        };
+        
+        window.startVSAI = () => {
+            console.log('Starting VS AI mode...');
+            stateManager.setGameMode(GameMode.VS_AI);
+            const result = stateManager.requestTransition(StateTransition.START_GAME);
+            console.log('Transition result:', result);
+            updateStateInfo();
+        };
+        
+        window.startVSHuman = () => {
+            console.log('Starting VS Human mode...');
+            stateManager.setGameMode(GameMode.VS_HUMAN);
+            const result = stateManager.requestTransition(StateTransition.START_GAME);
+            console.log('Transition result:', result);
+            updateStateInfo();
+        };
+        
+        // Update info every second
+        setInterval(updateStateInfo, 1000);
+        updateStateInfo();
+    </script>
+</body>
+</html>

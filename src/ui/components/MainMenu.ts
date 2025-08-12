@@ -6,9 +6,9 @@
  */
 
 import { BaseUIComponent } from './BaseUIComponent';
-import { UILayer } from '../UIManager';
+import { UILayer } from '../UITypes';
 import { StateManager } from '../../core/StateManager';
-import { StateTransition } from '../../core/GameState';
+import { StateTransition, GameMode } from '../../core/GameState';
 
 export class MainMenu extends BaseUIComponent {
   private menuContainer!: HTMLElement;
@@ -78,26 +78,47 @@ export class MainMenu extends BaseUIComponent {
     this.menuOptions = [
       {
         text: 'Endless Mode',
-        action: () => stateManager.requestTransition(StateTransition.START_GAME)
+        action: (): void => {
+          // Set the game mode and start game
+          stateManager.setGameMode(GameMode.ENDLESS);
+          stateManager.requestTransition(StateTransition.START_GAME);
+        }
       },
       {
         text: 'VS Computer',
         action: (): void => {
-          console.log('VS Computer mode not implemented yet');
-          // TODO: Implement in Phase 11 (Game Modes)
+          // Set VS AI mode and start game
+          stateManager.setGameMode(GameMode.VS_AI);
+          stateManager.requestTransition(StateTransition.START_GAME);
+        }
+      },
+      {
+        text: 'VS Human',
+        action: (): void => {
+          // Set VS Human mode and start game
+          stateManager.setGameMode(GameMode.VS_HUMAN);
+          stateManager.requestTransition(StateTransition.START_GAME);
         }
       },
       {
         text: 'Options',
-        action: () => stateManager.requestTransition(StateTransition.SHOW_OPTIONS)
+        action: (): void => {
+          stateManager.requestTransition(StateTransition.SHOW_OPTIONS);
+        }
       },
       {
         text: 'Demo',
-        action: () => stateManager.requestTransition(StateTransition.SHOW_DEMO)
+        action: (): void => {
+          // Start demo mode directly
+          stateManager.setGameMode(GameMode.DEMO);
+          stateManager.requestTransition(StateTransition.SHOW_DEMO);
+        }
       },
       {
         text: 'Back to Title',
-        action: () => stateManager.requestTransition(StateTransition.BACK_TO_TITLE)
+        action: (): void => {
+          stateManager.requestTransition(StateTransition.BACK_TO_TITLE);
+        }
       }
     ];
   }

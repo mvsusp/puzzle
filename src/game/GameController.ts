@@ -85,6 +85,10 @@ export class GameController {
     const inputEvents = this.inputManager.getInputEvents();
     if (inputEvents.length > 0) {
       debugLog('GameController', `Processing ${inputEvents.length} input events`);
+      
+      // Notify StateManager of user input for idle detection
+      const stateManager = StateManager.getInstance();
+      stateManager.onUserInput();
     }
     for (const event of inputEvents) {
       debugLog('GameController', `Handling event: ${event.action} - ${event.type}`);
@@ -453,6 +457,41 @@ export class GameController {
     return `Controller: ${this.state} Swaps:${stats.swaps} Raises:${stats.raises} Moves:${stats.moves}`;
   }
 
+  // Game Mode Support Methods (Phase 11)
+  
+  /**
+   * Set demo mode (for AI control)
+   */
+  public setDemoMode(enabled: boolean): void {
+    // TODO: Implement demo mode control
+    // This would disable user input and allow AI to control the cursor
+    console.log(`GameController: Demo mode ${enabled ? 'enabled' : 'disabled'}`);
+  }
+  
+  /**
+   * Simulate input for AI/Demo mode
+   */
+  public simulateInput(action: InputAction): void {
+    // Create a synthetic input event for the AI to use
+    const syntheticEvent: InputEvent = {
+      action,
+      type: InputEventType.PRESSED,
+      timestamp: Date.now(),
+      repeat: false
+    };
+    
+    this.handleInputEvent(syntheticEvent);
+  }
+  
+  /**
+   * Game mode ended callback
+   */
+  public onGameModeEnded(data: Record<string, unknown>): void {
+    console.log('GameController: Game mode ended', data);
+    // TODO: Handle game mode end events
+    // This could trigger state transitions or UI updates
+  }
+  
   // Cleanup resources
   public dispose(): void {
     this.inputManager.dispose();
