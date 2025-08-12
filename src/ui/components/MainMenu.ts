@@ -16,8 +16,10 @@ export class MainMenu extends BaseUIComponent {
   private menuOptions: Array<{text: string, action: () => void}> = [];
   
   constructor() {
-    super(UILayer.MENU);
+    // Defer auto init and explicitly initialize to avoid race conditions
+    super(UILayer.MENU, false);
     this.setupMenuOptions();
+    this.init();
   }
   
   protected createElement(): HTMLElement {

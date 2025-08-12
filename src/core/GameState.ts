@@ -12,17 +12,17 @@ export enum GameState {
   // Initial states
   LOADING = 'loading',
   TITLE_SCREEN = 'title_screen',
-  
+
   // Menu states
   MAIN_MENU = 'main_menu',
   OPTIONS_MENU = 'options_menu',
-  
+
   // Game states
   GAME_COUNTDOWN = 'game_countdown',
   GAME_RUNNING = 'game_running',
   GAME_PAUSED = 'game_paused',
   GAME_OVER = 'game_over',
-  
+
   // Special states
   DEMO = 'demo',
   TRANSITION = 'transition'
@@ -34,17 +34,17 @@ export enum GameState {
 export enum StateTransition {
   // From loading
   LOADING_COMPLETE = 'loading_complete',
-  
+
   // From title screen
   SHOW_MAIN_MENU = 'show_main_menu',
   START_GAME = 'start_game',
   SHOW_OPTIONS = 'show_options',
   SHOW_DEMO = 'show_demo',
-  
+
   // From menus
   BACK_TO_TITLE = 'back_to_title',
   BACK_TO_MENU = 'back_to_menu',
-  
+
   // Game flow
   COUNTDOWN_COMPLETE = 'countdown_complete',
   PAUSE_GAME = 'pause_game',
@@ -52,7 +52,7 @@ export enum StateTransition {
   PLAYER_WON = 'player_won',
   PLAYER_LOST = 'player_lost',
   RESTART_GAME = 'restart_game',
-  
+
   // Demo
   DEMO_TIMEOUT = 'demo_timeout',
   DEMO_EXIT = 'demo_exit'
@@ -136,7 +136,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     allowedTransitions: [StateTransition.LOADING_COMPLETE],
     showUI: [],
   },
-  
+
   [GameState.TITLE_SCREEN]: {
     allowedTransitions: [
       StateTransition.SHOW_MAIN_MENU,
@@ -146,7 +146,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     ],
     showUI: [],
   },
-  
+
   [GameState.MAIN_MENU]: {
     allowedTransitions: [
       StateTransition.START_GAME,
@@ -156,7 +156,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     ],
     showUI: [],
   },
-  
+
   [GameState.OPTIONS_MENU]: {
     allowedTransitions: [
       StateTransition.BACK_TO_TITLE,
@@ -164,7 +164,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     ],
     showUI: [],
   },
-  
+
   [GameState.GAME_COUNTDOWN]: {
     allowedTransitions: [
       StateTransition.COUNTDOWN_COMPLETE,
@@ -174,7 +174,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     showUI: [UIOverlay.COUNTDOWN, UIOverlay.SCORE],
     isGameplayState: true,
   },
-  
+
   [GameState.GAME_RUNNING]: {
     allowedTransitions: [
       StateTransition.PAUSE_GAME,
@@ -185,7 +185,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     showUI: [UIOverlay.SCORE, UIOverlay.TIMER],
     isGameplayState: true,
   },
-  
+
   [GameState.GAME_PAUSED]: {
     allowedTransitions: [
       StateTransition.RESUME_GAME,
@@ -196,7 +196,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     showUI: [UIOverlay.PAUSE_MENU, UIOverlay.SCORE],
     isGameplayState: true,
   },
-  
+
   [GameState.GAME_OVER]: {
     allowedTransitions: [
       StateTransition.RESTART_GAME,
@@ -205,7 +205,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     requiresGameBoard: true,
     showUI: [UIOverlay.GAME_OVER, UIOverlay.SCORE],
   },
-  
+
   [GameState.DEMO]: {
     allowedTransitions: [
       StateTransition.DEMO_EXIT,
@@ -215,7 +215,7 @@ export const STATE_CONFIGS: Record<GameState, StateConfig> = {
     showUI: [UIOverlay.SCORE],
     isGameplayState: true,
   },
-  
+
   [GameState.TRANSITION]: {
     allowedTransitions: [], // Transitions are handled internally
     showUI: [],
@@ -229,19 +229,19 @@ export class StateUtils {
   static isGameplayState(state: GameState): boolean {
     return STATE_CONFIGS[state].isGameplayState === true;
   }
-  
+
   static requiresGameBoard(state: GameState): boolean {
     return STATE_CONFIGS[state].requiresGameBoard === true;
   }
-  
+
   static canTransition(currentState: GameState, transition: StateTransition): boolean {
     return STATE_CONFIGS[currentState].allowedTransitions.includes(transition);
   }
-  
+
   static getUIOverlays(state: GameState): UIOverlay[] {
     return STATE_CONFIGS[state].showUI || [];
   }
-  
+
   static isMenuState(state: GameState): boolean {
     return [
       GameState.TITLE_SCREEN,
@@ -249,7 +249,7 @@ export class StateUtils {
       GameState.OPTIONS_MENU
     ].includes(state);
   }
-  
+
   static isPausedState(state: GameState): boolean {
     return [
       GameState.GAME_PAUSED,

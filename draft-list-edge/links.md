@@ -18,3 +18,4 @@ https://www.reddit.com/r/mtglimited/comments/1m8bndy/edge_of_eternities_limited_
 https://blog.cardkingdom.com/edge-of-eternities-draft-guide/
 https://draftsim.com/mtg-eoe-draft-guide/
 http://themanabase.com/lords-of-limited-edge-of-eternities-draft-zigging-while-everyone-is-zagging/
+
