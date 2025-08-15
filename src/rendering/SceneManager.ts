@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { Board } from '../game/Board';
-import { BoardRenderer } from './BoardRenderer';
 import { EnhancedBoardRenderer } from './EnhancedBoardRenderer';
 import { Cursor } from '../game/Cursor';
 import { VisualEffectsManager } from '../effects/VisualEffectsManager';
@@ -18,7 +17,7 @@ export class SceneManager {
   
   // Game board
   private board: Board | null = null;
-  private boardRenderer: BoardRenderer | EnhancedBoardRenderer | null = null;
+  private boardRenderer: EnhancedBoardRenderer | null = null;
   
   // Game cursor
   private cursor: Cursor | null = null;
@@ -202,7 +201,7 @@ export class SceneManager {
   }
   
   // Get board renderer for external access
-  public getBoardRenderer(): BoardRenderer | EnhancedBoardRenderer | null {
+  public getBoardRenderer(): EnhancedBoardRenderer | null {
     return this.boardRenderer;
   }
   

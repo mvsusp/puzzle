@@ -75,11 +75,11 @@ export abstract class BaseGameMode {
   protected gameController: GameController | null = null;
   protected startTime: number = 0;
   protected gameStarted: boolean = false;
-  
+
   constructor(config: GameModeConfig) {
     this.config = config;
   }
-  
+
   /**
    * Initialize the game mode with board and controller
    */
@@ -89,7 +89,7 @@ export abstract class BaseGameMode {
     this.startTime = Date.now();
     this.gameStarted = false;
   }
-  
+
   /**
    * Start the game mode
    */
@@ -98,7 +98,7 @@ export abstract class BaseGameMode {
     this.startTime = Date.now();
     this.onStart();
   }
-  
+
   /**
    * Stop the game mode
    */
@@ -106,7 +106,7 @@ export abstract class BaseGameMode {
     this.gameStarted = false;
     this.onStop();
   }
-  
+
   /**
    * Update the game mode (called each tick)
    */
@@ -114,49 +114,49 @@ export abstract class BaseGameMode {
     if (!this.gameStarted || !this.board || !this.gameController) {
       return;
     }
-    
+
     this.updateProgression();
     this.checkWinConditions();
     this.onUpdate();
   }
-  
+
   /**
    * Get current game mode type
    */
   public abstract getMode(): GameMode;
-  
+
   /**
    * Called when the game mode starts
    */
   protected abstract onStart(): void;
-  
+
   /**
    * Called when the game mode stops
    */
   protected abstract onStop(): void;
-  
+
   /**
    * Called each tick for mode-specific updates
    */
   protected abstract onUpdate(): void;
-  
+
   /**
    * Update speed progression based on time/score
    */
   protected updateProgression(): void {
     if (!this.config.speedProgression || !this.board) return;
-    
+
     const elapsedTime = Date.now() - this.startTime;
     const progressionFactor = Math.min(
       1 + (elapsedTime / 60000) * this.config.speedProgression, // 1 minute intervals
       this.config.maxSpeedMultiplier
     );
-    
+
     // Apply speed progression to stack raising
     const newSpeed = Math.round(this.config.initialStackRaiseSpeed / progressionFactor);
     this.board.setStackRaiseSpeed(Math.max(newSpeed, 1));
   }
-  
+
   /**
    * Check if any win conditions are met
    */
@@ -166,24 +166,24 @@ export abstract class BaseGameMode {
         case WinCondition.SURVIVE_TIME:
           // Endless mode doesn't have time limit
           break;
-          
+
         case WinCondition.REACH_SCORE:
           // Check score thresholds if needed
           break;
-          
+
         case WinCondition.OPPONENT_DEFEAT:
           // Check if opponent board is topped out
           break;
       }
     }
   }
-  
+
   /**
    * Get game mode statistics
    */
   public getStats(): GameModeStats {
     const elapsedTime = this.gameStarted ? Date.now() - this.startTime : 0;
-    
+
     return {
       mode: this.getMode(),
       elapsedTime,
@@ -192,7 +192,7 @@ export abstract class BaseGameMode {
       isActive: this.gameStarted
     };
   }
-  
+
   /**
    * Get current difficulty level based on progression
    */
@@ -218,7 +218,7 @@ export interface GameModeStats {
  */
 export const GAME_MODE_CONFIGS: Record<GameMode, GameModeConfig> = {
   [GameMode.ENDLESS]: {
-    initialStackRaiseSpeed: 10, // 10 ticks between raises
+    initialStackRaiseSpeed: 10, // Matching original game speed
     speedProgression: 0.1, // 10% faster per minute
     maxSpeedMultiplier: 5.0, // Max 5x speed
     sendsGarbage: false,
@@ -226,9 +226,9 @@ export const GAME_MODE_CONFIGS: Record<GameMode, GameModeConfig> = {
     trackHighScore: true,
     winConditions: [] // Endless mode has no win condition
   },
-  
+
   [GameMode.VS_AI]: {
-    initialStackRaiseSpeed: 15,
+    initialStackRaiseSpeed: 15, // Slightly slower than original for balance
     speedProgression: 0.05, // Slower progression in VS mode
     maxSpeedMultiplier: 3.0,
     sendsGarbage: true,
@@ -241,7 +241,7 @@ export const GAME_MODE_CONFIGS: Record<GameMode, GameModeConfig> = {
     trackHighScore: false,
     winConditions: [WinCondition.OPPONENT_DEFEAT]
   },
-  
+
   [GameMode.VS_HUMAN]: {
     initialStackRaiseSpeed: 20, // Slower for human vs human
     speedProgression: 0.02,
@@ -251,9 +251,9 @@ export const GAME_MODE_CONFIGS: Record<GameMode, GameModeConfig> = {
     trackHighScore: false,
     winConditions: [WinCondition.OPPONENT_DEFEAT]
   },
-  
+
   [GameMode.DEMO]: {
-    initialStackRaiseSpeed: 12,
+    initialStackRaiseSpeed: 12, // Slightly slower than original for demo
     speedProgression: 0.05,
     maxSpeedMultiplier: 3.0,
     sendsGarbage: false,

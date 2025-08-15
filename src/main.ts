@@ -1,7 +1,7 @@
 import { GameEngine } from './core/GameEngine';
 import { Cursor } from './game/Cursor';
 import { GameController } from './game/GameController';
-import { BoardRenderer } from './rendering/BoardRenderer';
+import { EnhancedBoardRenderer } from './rendering/EnhancedBoardRenderer';
 import { ComboDebugger } from './debug/ComboDebugger';
 
 class Application {
@@ -54,7 +54,7 @@ class Application {
     }
     
     // Create cursor
-    const cursor = new Cursor(board, BoardRenderer.TILE_SIZE);
+    const cursor = new Cursor(board, EnhancedBoardRenderer.TILE_SIZE);
     
     // Create game controller with audio system
     const gameController = new GameController(board, cursor, audioSystem);

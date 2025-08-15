@@ -29,7 +29,7 @@ describe('Board', () => {
 
     it('should initialize with random blocks in bottom rows', () => {
       let blockCount = 0;
-      
+
       // Check first 6 rows for blocks
       for (let row = 0; row < 6; row++) {
         for (let col = 0; col < Board.BOARD_WIDTH; col++) {
@@ -42,7 +42,7 @@ describe('Board', () => {
           }
         }
       }
-      
+
       // Should have blocks in the initial setup
       expect(blockCount).toBeGreaterThan(0);
     });
@@ -80,33 +80,33 @@ describe('Board', () => {
   describe('Game State Management', () => {
     it('should transition from countdown to running', () => {
       expect(board.state).toBe(BoardState.COUNTDOWN);
-      
+
       // Run enough ticks to complete countdown
       for (let i = 0; i < Board.COUNTDOWN_TICKS; i++) {
         board.tick();
       }
-      
+
       expect(board.state).toBe(BoardState.RUNNING);
     });
 
     it('should update countdown state during countdown', () => {
       expect(board.countdownState).toBe(3);
-      
+
       // Run partial countdown
       for (let i = 0; i < Board.COUNTDOWN_TICKS * 0.3; i++) {
         board.tick();
       }
-      
+
       // Should still be in countdown but state may have changed
       expect(board.state).toBe(BoardState.COUNTDOWN);
     });
 
     it('should track ticks run correctly', () => {
       const initialTicks = board.ticksRun;
-      
+
       board.tick();
       expect(board.ticksRun).toBe(initialTicks + 1);
-      
+
       board.tick();
       board.tick();
       expect(board.ticksRun).toBe(initialTicks + 3);
@@ -116,20 +116,33 @@ describe('Board', () => {
   describe('Stack Management', () => {
     it('should force stack raise when requested', () => {
       board.state = BoardState.RUNNING; // Skip countdown
-      
-      // Get initial tile in bottom row
+
+      // Record initial bottom tile properties for comparison
       const initialTile = board.getTile(0, 0);
-      
+      const initialType = initialTile?.type;
+      const initialBlockColor = initialTile?.block?.color;
+
+      // Force raise: should bypass timer and start stepping immediately
       board.inputForceStackRaise();
       board.tick();
-      
-      // Tile should have moved up
+
+      // After one tick we should have progressed one step
+      expect(board.stackOffset).toBeGreaterThan(0);
+
+      // Advance enough ticks to complete a full row raise (32 steps)
+      const stepsRemaining = Board.STACK_RAISE_STEPS - board.stackOffset;
+      for (let i = 0; i < stepsRemaining; i++) {
+        board.tick();
+      }
+
+      // Now a full row should have been applied; the original bottom tile should be at row 1
       const movedTile = board.getTile(1, 0);
-      expect(movedTile).toEqual(initialTile);
+      expect(movedTile?.type).toBe(initialType);
+      expect(movedTile?.block?.color).toBe(initialBlockColor);
     });
 
     it('should have proper stack raise timing', () => {
-      expect(board.stackRaiseTicks).toBe(300); // Updated to slower timing (5 seconds at 60 FPS)
+      expect(board.stackRaiseTicks).toBe(10); // Matches original game timing
       expect(board.stackRaiseTimer).toBe(0);
     });
   });
@@ -154,7 +167,7 @@ describe('Board', () => {
   describe('Garbage Management', () => {
     it('should queue garbage blocks', () => {
       board.queueGarbage(true, 4);
-      
+
       // Garbage queue should have items (internal state, hard to test directly)
       // This tests that the method doesn't throw
       expect(() => board.queueGarbage(false, 2)).not.toThrow();
@@ -165,13 +178,13 @@ describe('Board', () => {
     it('should create new board when reset', () => {
       const originalScore = board.getScore();
       const originalTicks = board.ticksRun;
-      
+
       // Modify board state
       board.tick();
       board.tick();
-      
+
       const newBoard = board.reset();
-      
+
       expect(newBoard).toBeInstanceOf(Board);
       expect(newBoard.getScore()).toBe(0);
       expect(newBoard.ticksRun).toBe(0);
@@ -196,7 +209,7 @@ describe('Board', () => {
     it('should advance countdown state', () => {
       const initialState = board.countdownState;
       board.advanceCountdownState();
-      
+
       if (initialState > 0) {
         expect(board.countdownState).toBe(initialState - 1);
       }

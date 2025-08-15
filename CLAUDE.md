@@ -32,6 +32,24 @@ A faithful recreation of Panel de Pon / Tetris Attack / Puzzle League using Thre
 - Fall detection for large blocks, transformation mechanics
 - EnhancedBoardRenderer with garbage-specific materials and effects
 - Q key binding for testing garbage drops
+- **Stack raising mechanics fully operational** (fixed forced raise bug)
+
+### ✅ Phase 8: Visual Effects & Particles (COMPLETE)
+- Particle system for explosions and matches
+- Screen shake effects for large chains/combos
+- Enhanced visual feedback for special events
+- Polish existing animations
+
+### ✅ Phase 9: Game States & UI (COMPLETE)
+- Game over detection and handling
+- Victory conditions and level progression
+- Menu system and game state management
+- HUD elements (score, time, level indicators)
+
+### ✅ Phase 10: Audio System (COMPLETE)
+- Sound effect integration
+- Music system with dynamic tracks
+- Audio feedback for actions and events
 
 ## Technical Architecture
 
@@ -62,17 +80,31 @@ COUNTDOWN_TICKS = 188, STACK_RAISE_STEPS = 32
 │   ├── input/          # InputManager
 │   ├── animation/      # Animation system components
 │   └── main.ts
-├── tests/              # Comprehensive test suites (171+ tests passing)
+├── tests/              # Comprehensive test suites (227 tests passing)
 └── original/           # Reference C++ implementation
 ```
 
-## Development Commands
+## Development Workflow & Best Practices
+
+### Essential Commands
 ```bash
 npm run dev           # Start dev server (localhost:3001)
 npm run lint          # ESLint check (ALWAYS run before commit)
 npm run type-check    # TypeScript check (ALWAYS run before commit)
 npm test              # Run all tests (ALWAYS run before commit)
 ```
+
+### Pre-Commit Checklist
+1. **Run full quality check**: `npm run lint && npm run type-check && npm test`
+2. **Verify no regressions**: All 227 tests must pass
+3. **Test visual changes**: Check at `localhost:3001` with debug UI (F3)
+4. **Reference original**: Compare behavior with C++ implementation when in doubt
+
+### Debugging Tips
+- Use F3 to toggle debug UI for real-time game state inspection
+- Test specific features: Q for garbage blocks, Z for manual stack raise
+- Run individual tests: `npm test -- -t "test name"` for focused debugging
+- Check `original/panel-pop` for reference implementation details
 
 ## Current Game State
 The game currently has:
@@ -84,23 +116,6 @@ The game currently has:
 - Score system with chain/combo bonuses
 
 ## Remaining Implementation Phases
-
-### Phase 8: Visual Effects & Particles (NEXT PRIORITY)
-- Particle system for explosions and matches
-- Screen shake effects for large chains/combos
-- Enhanced visual feedback for special events
-- Polish existing animations
-
-### Phase 9: Game States & UI
-- Game over detection and handling
-- Victory conditions and level progression
-- Menu system and game state management
-- HUD elements (score, time, level indicators)
-
-### Phase 10: Audio System
-- Sound effect integration
-- Music system with dynamic tracks
-- Audio feedback for actions and events
 
 ### Phase 11-15: Polish & Release
 - Game modes (puzzle, versus, endless)
@@ -123,7 +138,12 @@ The game currently has:
 2. **Enum comparisons**: Always use `TileType.AIR` not `'AIR'` string comparisons
 3. **Animation timing**: All effects use 60 FPS fixed timestep for frame-perfect gameplay
 4. **Garbage spawning**: Spawns in buffer area (row 16+) then falls into view
-5. **Test coverage**: 171+ tests passing, always run before commits
+5. **Test coverage**: 227 tests passing, always run before commits
+6. **Stack raising**: Force raise bypasses timer but still steps per tick (32 steps/row)
+
+### Recent Fixes & Resolved Issues
+- **Stack Raise Bug (Fixed)**: `stackRaiseForced` was being reset prematurely on every tick instead of only after full row raise completion. Fixed in `Board.ts:handleStackRaising()` to match original C++ behavior.
+- **Board Movement**: Tiles correctly shift up during stack raise with buffer row replacing bottom row
 
 ## Testing & Verification
 1. Visual testing at `localhost:3001` with debug UI (F3)
@@ -131,5 +151,19 @@ The game currently has:
 3. Verify chain/combo mechanics work correctly
 4. Compare timing with original C++ reference
 5. Always run `npm run lint && npm run type-check && npm test` before commits
+
+## Code Quality Principles
+- **Frame-Perfect Accuracy**: Match original game timing exactly (60 FPS fixed timestep)
+- **Type Safety**: Use TypeScript enums and interfaces, avoid string comparisons
+- **Test Coverage**: Maintain comprehensive test suite, add tests for new features
+- **Reference Implementation**: When uncertain, check `original/panel-pop` C++ code
+- **Clean Code**: Follow existing patterns, use descriptive names, avoid magic numbers
+- **Performance**: Optimize hot paths, use object pooling for frequently created objects
+
+## Common Pitfalls to Avoid
+1. **Don't reset flags prematurely**: Game state flags should only reset when their full action completes
+2. **Respect the fixed timestep**: All timing must be in ticks (1/60 second), not real time
+3. **Test edge cases**: Stack raising at boundaries, garbage blocks at edges, chain breaks
+4. **Maintain separation**: Keep game logic (Board.ts) separate from rendering (EnhancedBoardRenderer.ts)
 
 The core gameplay mechanics are complete and functional. Focus next on visual polish and game state management.

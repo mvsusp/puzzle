@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { GameController } from '../../src/game/GameController';
 import { Board } from '../../src/game/Board';
 import { Cursor } from '../../src/game/Cursor';
-import { BoardRenderer } from '../../src/rendering/BoardRenderer';
+import { EnhancedBoardRenderer } from '../../src/rendering/EnhancedBoardRenderer';
 import { InputAction } from '../../src/input/InputManager';
 import { BoardState } from '../../src/game/BlockTypes';
 
@@ -13,7 +13,7 @@ describe('Cursor Movement Integration Test', () => {
   
   beforeEach(() => {
     board = new Board();
-    cursor = new Cursor(board, BoardRenderer.TILE_SIZE);
+    cursor = new Cursor(board, EnhancedBoardRenderer.TILE_SIZE);
     gameController = new GameController(board, cursor);
   });
   
