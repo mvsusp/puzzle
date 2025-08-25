@@ -3,6 +3,7 @@ import { Board } from '../game/Board';
 import { EnhancedBoardRenderer } from './EnhancedBoardRenderer';
 import { Cursor } from '../game/Cursor';
 import { VisualEffectsManager } from '../effects/VisualEffectsManager';
+import { AssetLoader } from '../assets/AssetLoader';
 import { AudioSystem } from '../audio/AudioSystem';
 
 export class SceneManager {
@@ -10,6 +11,7 @@ export class SceneManager {
   private camera: THREE.OrthographicCamera;
   private gameContainer: THREE.Group;
   private uiContainer: THREE.Group;
+  private assetLoader: AssetLoader;
   
   // Scene dimensions (game world units)
   private readonly WORLD_WIDTH = 800;
@@ -28,12 +30,9 @@ export class SceneManager {
   // Audio system
   private audioSystem: AudioSystem | null = null;
   
-  // Test sprite for Phase 1 (remove in Phase 2)
-  private testSprite: THREE.Mesh | null = null;
-  private testSpriteRotation = 0;
-  
-  constructor() {
+  constructor(assetLoader: AssetLoader) {
     this.scene = new THREE.Scene();
+    this.assetLoader = assetLoader;
     
     // Create orthographic camera for pixel-perfect 2D rendering
     const aspect = this.WORLD_WIDTH / this.WORLD_HEIGHT;
@@ -65,8 +64,7 @@ export class SceneManager {
     this.setupLighting();
     this.initializeGameBoard();
     
-    // Keep test sprite for now, will be removed when board is fully functional
-    this.createTestSprite();
+    
     
     console.log('SceneManager initialized with game board');
   }
@@ -84,21 +82,7 @@ export class SceneManager {
     this.scene.add(directionalLight);
   }
   
-  private createTestSprite(): void {
-    // Create a simple test sprite to verify rendering
-    const geometry = new THREE.PlaneGeometry(64, 64);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xff6b6b,
-      transparent: true,
-      opacity: 0.8,
-    });
-    
-    this.testSprite = new THREE.Mesh(geometry, material);
-    this.testSprite.name = 'TestSprite';
-    this.testSprite.position.set(0, 0, 0);
-    
-    this.gameContainer.add(this.testSprite);
-  }
+  
   
   // Initialize game board and renderer
   private initializeGameBoard(): void {
@@ -106,7 +90,7 @@ export class SceneManager {
     this.board = new Board(this.audioSystem || undefined);
     
     // Create enhanced board renderer for garbage block support
-    this.boardRenderer = new EnhancedBoardRenderer(this.board, this.cursor || undefined);
+    this.boardRenderer = new EnhancedBoardRenderer(this.board, this.assetLoader, this.cursor || undefined);
     
     // Initialize visual effects manager
     this.visualEffectsManager = new VisualEffectsManager(
@@ -148,15 +132,7 @@ export class SceneManager {
       this.cursor.tick();
     }
     
-    // Animate test sprite for visual confirmation (Phase 1 compatibility)
-    if (this.testSprite) {
-      this.testSpriteRotation += 0.02;
-      this.testSprite.rotation.z = this.testSpriteRotation;
-      
-      // Move test sprite to the right to avoid overlap with board
-      this.testSprite.position.x = 200 + Math.sin(this.testSpriteRotation) * 50;
-      this.testSprite.position.y = Math.sin(this.testSpriteRotation * 2) * 20;
-    }
+    
   }
   
   public render(renderer: THREE.WebGLRenderer, _alpha: number): void {
@@ -248,17 +224,7 @@ export class SceneManager {
     return this.visualEffectsManager;
   }
 
-  // Method to remove test sprite when moving to Phase 3
-  public removeTestSprite(): void {
-    if (this.testSprite) {
-      this.gameContainer.remove(this.testSprite);
-      this.testSprite.geometry.dispose();
-      if (this.testSprite.material instanceof THREE.Material) {
-        this.testSprite.material.dispose();
-      }
-      this.testSprite = null;
-    }
-  }
+  
   
   // Clean up resources
   public dispose(): void {
@@ -280,8 +246,7 @@ export class SceneManager {
       this.boardRenderer = null;
     }
     
-    // Clean up test sprite
-    this.removeTestSprite();
+    
     
     // Clean up scene
     while (this.scene.children.length > 0) {

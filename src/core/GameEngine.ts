@@ -44,8 +44,8 @@ export class GameEngine {
     
     // Initialize core systems
     this.clock = new THREE.Clock();
-    this.sceneManager = new SceneManager();
     this.assetLoader = new AssetLoader();
+    this.sceneManager = new SceneManager(this.assetLoader);
     
     // Initialize Phase 9 systems
     console.log('GameEngine: Initializing StateManager');

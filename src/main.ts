@@ -65,8 +65,7 @@ class Application {
     // Connect game controller to engine
     this.gameEngine.setGameController(gameController);
     
-    // Remove test sprite from Phase 1/2
-    sceneManager.removeTestSprite();
+    
     
     console.log('Game components initialized - Phase 3 complete');
   }

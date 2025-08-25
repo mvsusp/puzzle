@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprite Test - 2D Canvas</title>
+  <style>
+    body { 
+      margin: 0; 
+      background-color: #333; 
+      color: white; 
+      font-family: monospace;
+    }
+    #container { 
+      display: flex; 
+      flex-wrap: wrap; 
+      padding: 20px; 
+    }
+    .sprite-container { 
+      margin: 20px; 
+      text-align: center; 
+    }
+    canvas { 
+      display: block; 
+      margin-bottom: 10px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center; width: 100%;">2D Canvas Sprite Test (Pixel-Perfect)</h1>
+  <div id="container"></div>
+  <script type="module" src="/src/sprite-test-2d.ts"></script>
+</body>
+</html>

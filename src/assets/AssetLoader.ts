@@ -27,78 +27,8 @@ export class AssetLoader {
   }
   
   public async loadEssentialAssets(): Promise<void> {
-    const assetsToLoad = [
-      // Test texture for Phase 1 - we'll create a simple colored square
-      { type: 'texture', name: 'test', url: this.createTestTexture() },
-    ];
-    
-    let loaded = 0;
-    const total = assetsToLoad.length;
-    
-    for (const asset of assetsToLoad) {
-      try {
-        if (asset.type === 'texture') {
-          if (typeof asset.url === 'string') {
-            const texture = await this.loadTexture(asset.name, asset.url);
-            this.loadedTextures.set(asset.name, texture);
-          } else {
-            // Handle the test texture case
-            this.loadedTextures.set(asset.name, asset.url as THREE.Texture);
-          }
-        }
-        
-        loaded++;
-        this.reportProgress(loaded, total, asset.name);
-        
-      } catch (error) {
-        console.warn(`Failed to load asset ${asset.name}:`, error);
-        loaded++;
-        this.reportProgress(loaded, total, asset.name);
-      }
-    }
-    
+    await this.loadGameSprites();
     console.log('Essential assets loaded');
-  }
-  
-  private createTestTexture(): THREE.Texture {
-    // Create a simple test texture programmatically
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
-    
-    const context = canvas.getContext('2d');
-    if (!context) {
-      throw new Error('Could not create 2D context for test texture');
-    }
-    
-    // Create a colorful test pattern
-    const gradient = context.createLinearGradient(0, 0, 64, 64);
-    gradient.addColorStop(0, '#ff6b6b');
-    gradient.addColorStop(0.5, '#4ecdc4');
-    gradient.addColorStop(1, '#45b7d1');
-    
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, 64, 64);
-    
-    // Add border
-    context.strokeStyle = '#ffffff';
-    context.lineWidth = 2;
-    context.strokeRect(0, 0, 64, 64);
-    
-    // Add text
-    context.fillStyle = '#ffffff';
-    context.font = '12px monospace';
-    context.textAlign = 'center';
-    context.fillText('TEST', 32, 20);
-    context.fillText('SPRITE', 32, 35);
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    
-    return texture;
   }
   
   private loadTexture(_name: string, url: string): Promise<THREE.Texture> {
@@ -167,11 +97,31 @@ export class AssetLoader {
     return this.loadedAudio.has(name);
   }
   
-  // Future methods for loading game assets
   public async loadGameSprites(): Promise<void> {
-    // This will be implemented in later phases
-    // Implementation will come in Phase 2
-    console.log('Game sprites loading will be implemented in Phase 2');
+    const assetsToLoad = [
+      { type: 'texture', name: 'spritesheet', url: 'sprites.png' },
+    ];
+
+    let loaded = 0;
+    const total = assetsToLoad.length;
+
+    for (const asset of assetsToLoad) {
+      try {
+        if (asset.type === 'texture') {
+          const texture = await this.loadTexture(asset.name, asset.url);
+          this.loadedTextures.set(asset.name, texture);
+        }
+
+        loaded++;
+        this.reportProgress(loaded, total, asset.name);
+
+      } catch (error) {
+        console.warn(`Failed to load asset ${asset.name}:`, error);
+        // Still count as loaded to not hang the loading screen
+        loaded++;
+        this.reportProgress(loaded, total, asset.name);
+      }
+    }
   }
   
   public async loadGameAudio(): Promise<void> {

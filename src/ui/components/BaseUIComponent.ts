@@ -14,12 +14,8 @@ export abstract class BaseUIComponent implements UIComponent {
   protected container!: HTMLElement;
   protected layer: UILayer;
   
-  constructor(layer: UILayer = UILayer.HUD, autoInit: boolean = true) {
+  constructor(layer: UILayer = UILayer.HUD) {
     this.layer = layer;
-    // Defer init so subclass fields get initialized first
-    if (autoInit) {
-      queueMicrotask(() => this.init());
-    }
   }
   
   /**

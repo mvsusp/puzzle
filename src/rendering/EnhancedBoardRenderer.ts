@@ -5,6 +5,7 @@ import { Cursor } from '../game/Cursor';
 import { BLOCK_COLORS, BlockColor, TileType, GARBAGE_COLORS, BlockState } from '../game/BlockTypes';
 import { GarbageBlock, GarbageBlockState, GarbageBlockType } from '../game/GarbageBlock';
 import { AnimationManager } from '../animation/AnimationManager';
+import { AssetLoader } from '../assets/AssetLoader';
 import { VisualEffectsManager, MatchEventData, GarbageEventData } from '../effects/VisualEffectsManager';
 
 export class EnhancedBoardRenderer {
@@ -14,6 +15,7 @@ export class EnhancedBoardRenderer {
   public static readonly BOARD_PIXEL_HEIGHT = (Board.TOP_ROW + 1) * EnhancedBoardRenderer.TILE_SIZE;
   
   private board: Board;
+  private assetLoader: AssetLoader;
   private boardGroup: THREE.Group;
   private animationManager: AnimationManager;
   private visualEffectsManager: VisualEffectsManager | null = null;
@@ -22,7 +24,7 @@ export class EnhancedBoardRenderer {
   
   // Block rendering
   private blockGeometry: THREE.PlaneGeometry;
-  private blockMaterials: Map<BlockColor, THREE.MeshLambertMaterial> = new Map();
+  private blockMaterials: Map<string, THREE.MeshLambertMaterial> = new Map();
   private blockMeshes: THREE.Mesh[][] = [];
   
   // Garbage block rendering
@@ -44,8 +46,9 @@ export class EnhancedBoardRenderer {
     panic: false
   };
 
-  constructor(board: Board, cursor?: Cursor) {
+  constructor(board: Board, assetLoader: AssetLoader, cursor?: Cursor) {
     this.board = board;
+    this.assetLoader = assetLoader;
     this.boardGroup = new THREE.Group();
     this.boardGroup.name = 'EnhancedBoardGroup';
     
@@ -75,8 +78,72 @@ export class EnhancedBoardRenderer {
     this.createCursor(cursor);
   }
 
-  // Initialize materials for each block color
   private initializeBlockMaterials(): void {
+    if (!this.assetLoader) {
+      console.warn('AssetLoader not provided, falling back to colored materials');
+      this.initializeBlockMaterialsFallback();
+      return;
+    }
+
+    const spritesheet = this.assetLoader.getTexture('spritesheet');
+    if (!spritesheet) {
+      console.warn('Spritesheet not found, falling back to colored materials');
+      this.initializeBlockMaterialsFallback();
+      return;
+    }
+
+    const TILE_SIZE = 32;
+    const SPRITESHEET_WIDTH = 640;
+    const SPRITESHEET_HEIGHT = 480;
+
+    const uvs: Record<string, { x: number; y: number }> = {
+      purple: { x: 96, y: 0 },
+      yellow: { x: 0, y: 0 },
+      red: { x: 128, y: 0 },
+      cyan: { x: 64, y: 0 },
+      green: { x: 32, y: 0 },
+    };
+
+    const states: Record<string, { y: number }> = {
+      normal: { y: 0 },
+      landed: { y: 128 },
+      exploding: { y: 160 },
+    };
+
+    for (const [colorName] of Object.entries(BlockColor).filter(([k]) => isNaN(Number(k)))) {
+      for (const [stateName] of Object.entries(BlockState).filter(([k]) => isNaN(Number(k)))) {
+        const key = `${colorName}-${stateName}`;
+
+        const uv = uvs[colorName.toLowerCase()];
+        const stateY = states[stateName.toLowerCase()]?.y || 0;
+
+        if (uv) {
+          const texture = spritesheet.clone();
+          texture.needsUpdate = true;
+          texture.magFilter = THREE.NearestFilter;
+          texture.minFilter = THREE.NearestFilter;
+
+          const x = uv.x / SPRITESHEET_WIDTH;
+          const y = (SPRITESHEET_HEIGHT - stateY - TILE_SIZE) / SPRITESHEET_HEIGHT;
+          const width = TILE_SIZE / SPRITESHEET_WIDTH;
+          const height = TILE_SIZE / SPRITESHEET_HEIGHT;
+
+          texture.repeat.set(width, height);
+          texture.offset.set(x, y);
+
+          const material = new THREE.MeshLambertMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 1.0,
+            emissive: 0x000000,
+          });
+          this.blockMaterials.set(key, material);
+        }
+      }
+    }
+  }
+
+  private initializeBlockMaterialsFallback(): void {
     Object.entries(BLOCK_COLORS).forEach(([colorKey, colorValue]) => {
       const color = parseInt(colorKey) as BlockColor;
       const material = new THREE.MeshLambertMaterial({
@@ -85,7 +152,7 @@ export class EnhancedBoardRenderer {
         opacity: 1.0,
         emissive: 0x000000,
       });
-      this.blockMaterials.set(color, material);
+      this.blockMaterials.set(color.toString(), material);
     });
   }
 
@@ -277,13 +344,16 @@ export class EnhancedBoardRenderer {
     }
   }
 
-  // Update individual block mesh with animation support
   private updateBlockMesh(mesh: THREE.Mesh, block: Block, tile: Tile, row: number, col: number): void {
     // Show the mesh
     mesh.visible = true;
-    
-    // Update material based on block color
-    const material = this.blockMaterials.get(block.color);
+
+    const colorName = BlockColor[block.color];
+    const stateName = block.state.toUpperCase();
+    const key = `${colorName}-${stateName}`;
+
+    // Update material based on block color and state
+    const material = this.blockMaterials.get(key);
     if (material) {
       mesh.material = material;
       
@@ -294,6 +364,12 @@ export class EnhancedBoardRenderer {
         }
         this.animationManager.registerBlockMesh(block, mesh, material);
         mesh.userData.registeredBlock = block;
+      }
+    } else {
+      // Fallback for unknown material combinations
+      const fallbackMaterial = this.blockMaterials.get(`${colorName}-NORMAL`);
+      if (fallbackMaterial) {
+        mesh.material = fallbackMaterial;
       }
     }
     

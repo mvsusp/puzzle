@@ -284,6 +284,7 @@ export class UIManager {
     if (!this.titleScreen) {
       console.log('UIManager: Creating new TitleScreen component');
       this.titleScreen = new TitleScreen();
+      this.titleScreen.init();
       console.log('UIManager: TitleScreen instance created');
       this.uiContainer.appendChild(this.titleScreen.element);
       this.components.set('titleScreen', this.titleScreen);
@@ -300,6 +301,7 @@ export class UIManager {
   private showMainMenu(): void {
     if (!this.mainMenu) {
       this.mainMenu = new MainMenu();
+      this.mainMenu.init();
       this.uiContainer.appendChild(this.mainMenu.element);
       this.components.set('mainMenu', this.mainMenu);
     }
@@ -312,6 +314,7 @@ export class UIManager {
   private showScoreHUD(): void {
     if (!this.scoreHUD) {
       this.scoreHUD = new ScoreHUD();
+      this.scoreHUD.init();
       this.uiContainer.appendChild(this.scoreHUD.element);
       this.components.set('scoreHUD', this.scoreHUD);
     }
@@ -324,6 +327,7 @@ export class UIManager {
   private showCountdownOverlay(): void {
     if (!this.countdownOverlay) {
       this.countdownOverlay = new CountdownOverlay();
+      this.countdownOverlay.init();
       this.uiContainer.appendChild(this.countdownOverlay.element);
       this.components.set('countdownOverlay', this.countdownOverlay);
     }
@@ -336,6 +340,7 @@ export class UIManager {
   private showPauseMenu(): void {
     if (!this.pauseMenu) {
       this.pauseMenu = new PauseMenu();
+      this.pauseMenu.init();
       this.uiContainer.appendChild(this.pauseMenu.element);
       this.components.set('pauseMenu', this.pauseMenu);
     }
@@ -348,6 +353,7 @@ export class UIManager {
   private showGameOverScreen(): void {
     if (!this.gameOverScreen) {
       this.gameOverScreen = new GameOverScreen();
+      this.gameOverScreen.init();
       this.uiContainer.appendChild(this.gameOverScreen.element);
       this.components.set('gameOverScreen', this.gameOverScreen);
     }
@@ -360,6 +366,7 @@ export class UIManager {
   private showOptionsMenu(): void {
     if (!this.optionsMenu) {
       this.optionsMenu = new OptionsMenu();
+      this.optionsMenu.init();
       this.uiContainer.appendChild(this.optionsMenu.element);
       this.components.set('optionsMenu', this.optionsMenu);
     }
