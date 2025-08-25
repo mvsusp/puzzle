@@ -6,6 +6,7 @@ import { BLOCK_COLORS, BlockColor, TileType, GARBAGE_COLORS, BlockState } from '
 import { GarbageBlock, GarbageBlockState, GarbageBlockType } from '../game/GarbageBlock';
 import { AnimationManager } from '../animation/AnimationManager';
 import { AssetLoader } from '../assets/AssetLoader';
+import { PixelPerfectSpriteRenderer } from './PixelPerfectSpriteRenderer';
 import { VisualEffectsManager, MatchEventData, GarbageEventData } from '../effects/VisualEffectsManager';
 
 export class EnhancedBoardRenderer {
@@ -16,6 +17,7 @@ export class EnhancedBoardRenderer {
   
   private board: Board;
   private assetLoader: AssetLoader;
+  private pixelPerfectRenderer: PixelPerfectSpriteRenderer;
   private boardGroup: THREE.Group;
   private animationManager: AnimationManager;
   private visualEffectsManager: VisualEffectsManager | null = null;
@@ -49,6 +51,7 @@ export class EnhancedBoardRenderer {
   constructor(board: Board, assetLoader: AssetLoader, cursor?: Cursor) {
     this.board = board;
     this.assetLoader = assetLoader;
+    this.pixelPerfectRenderer = new PixelPerfectSpriteRenderer(assetLoader);
     this.boardGroup = new THREE.Group();
     this.boardGroup.name = 'EnhancedBoardGroup';
     
@@ -70,12 +73,27 @@ export class EnhancedBoardRenderer {
       EnhancedBoardRenderer.TILE_SIZE
     );
     
-    // Initialize rendering components
+    // Initialize rendering components synchronously first
     this.initializeBlockMaterials();
     this.initializeGarbageMaterials();
     this.initializeBlockMeshes();
     this.createGridBackground();
     this.createCursor(cursor);
+    
+    // Initialize pixel-perfect sprites asynchronously
+    this.initializePixelPerfectSprites().then(() => {
+      // Re-initialize block materials with pixel-perfect textures
+      this.initializeBlockMaterials();
+    });
+  }
+
+  private async initializePixelPerfectSprites(): Promise<void> {
+    try {
+      await this.pixelPerfectRenderer.initialize();
+      console.log('Pixel-perfect sprite renderer initialized');
+    } catch (error) {
+      console.warn('Failed to initialize pixel-perfect sprites:', error);
+    }
   }
 
   private initializeBlockMaterials(): void {
@@ -114,30 +132,44 @@ export class EnhancedBoardRenderer {
       for (const [stateName] of Object.entries(BlockState).filter(([k]) => isNaN(Number(k)))) {
         const key = `${colorName}-${stateName}`;
 
-        const uv = uvs[colorName.toLowerCase()];
-        const stateY = states[stateName.toLowerCase()]?.y || 0;
-
-        if (uv) {
-          const texture = spritesheet.clone();
-          texture.needsUpdate = true;
-          texture.magFilter = THREE.NearestFilter;
-          texture.minFilter = THREE.NearestFilter;
-
-          const x = uv.x / SPRITESHEET_WIDTH;
-          const y = (SPRITESHEET_HEIGHT - stateY - TILE_SIZE) / SPRITESHEET_HEIGHT;
-          const width = TILE_SIZE / SPRITESHEET_WIDTH;
-          const height = TILE_SIZE / SPRITESHEET_HEIGHT;
-
-          texture.repeat.set(width, height);
-          texture.offset.set(x, y);
-
+        // Try to get pixel-perfect texture first
+        const pixelTexture = this.pixelPerfectRenderer.getTexture(colorName, stateName);
+        
+        if (pixelTexture) {
           const material = new THREE.MeshLambertMaterial({
-            map: texture,
+            map: pixelTexture,
             transparent: true,
             opacity: 1.0,
             emissive: 0x000000,
           });
           this.blockMaterials.set(key, material);
+        } else {
+          // Fallback to UV-mapped texture (legacy method)
+          const uv = uvs[colorName.toLowerCase()];
+          const stateY = states[stateName.toLowerCase()]?.y || 0;
+
+          if (uv) {
+            const texture = spritesheet.clone();
+            texture.needsUpdate = true;
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+
+            const x = uv.x / SPRITESHEET_WIDTH;
+            const y = (SPRITESHEET_HEIGHT - stateY - TILE_SIZE) / SPRITESHEET_HEIGHT;
+            const width = TILE_SIZE / SPRITESHEET_WIDTH;
+            const height = TILE_SIZE / SPRITESHEET_HEIGHT;
+
+            texture.repeat.set(width, height);
+            texture.offset.set(x, y);
+
+            const material = new THREE.MeshLambertMaterial({
+              map: texture,
+              transparent: true,
+              opacity: 1.0,
+              emissive: 0x000000,
+            });
+            this.blockMaterials.set(key, material);
+          }
         }
       }
     }
@@ -652,6 +684,9 @@ export class EnhancedBoardRenderer {
 
   // Clean up resources
   public dispose(): void {
+    // Dispose pixel-perfect sprite renderer
+    this.pixelPerfectRenderer.dispose();
+    
     // Dispose visual effects manager
     if (this.visualEffectsManager) {
       this.visualEffectsManager.dispose();

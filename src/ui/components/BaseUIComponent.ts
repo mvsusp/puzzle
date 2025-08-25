@@ -14,8 +14,11 @@ export abstract class BaseUIComponent implements UIComponent {
   protected container!: HTMLElement;
   protected layer: UILayer;
   
-  constructor(layer: UILayer = UILayer.HUD) {
+  constructor(layer: UILayer = UILayer.HUD, autoInit: boolean = true) {
     this.layer = layer;
+    if (autoInit) {
+      this.init();
+    }
   }
   
   /**
