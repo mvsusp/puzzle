@@ -5,6 +5,7 @@ import { Cursor } from '../game/Cursor';
 import { VisualEffectsManager } from '../effects/VisualEffectsManager';
 import { AssetLoader } from '../assets/AssetLoader';
 import { AudioSystem } from '../audio/AudioSystem';
+import { BoardDimensions } from './BlockConstants';
 
 export class SceneManager {
   private scene: THREE.Scene;
@@ -13,9 +14,10 @@ export class SceneManager {
   private uiContainer: THREE.Group;
   private assetLoader: AssetLoader;
   
-  // Scene dimensions (game world units)
-  private readonly WORLD_WIDTH = 800;
-  private readonly WORLD_HEIGHT = 600;
+  // Scene dimensions adjusted for larger blocks
+  // Adding padding around the board for UI elements
+  private readonly WORLD_WIDTH = BoardDimensions.BOARD_PIXEL_WIDTH + 200; // ~900px
+  private readonly WORLD_HEIGHT = BoardDimensions.BOARD_PIXEL_HEIGHT + 100; // ~1450px
   
   // Game board
   private board: Board | null = null;

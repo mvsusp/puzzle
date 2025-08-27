@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SceneManager } from '../../../src/rendering/SceneManager';
 import { AssetLoader } from '../../../src/assets/AssetLoader';
+import { BoardDimensions } from '../../../src/rendering/BlockConstants';
 import * as THREE from 'three';
 
 describe('SceneManager', () => {
@@ -64,7 +65,8 @@ describe('SceneManager', () => {
       sceneManager.handleResize(1200, 800);
       
       const aspect = 1200 / 800;
-      const frustumSize = 600;
+      // SceneManager now uses BoardDimensions.BOARD_PIXEL_HEIGHT + 100 as frustumSize
+      const frustumSize = BoardDimensions.BOARD_PIXEL_HEIGHT + 100;
       
       expect(camera.left).toBe((frustumSize * aspect) / -2);
       expect(camera.right).toBe((frustumSize * aspect) / 2);

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BlockTextureManager } from '../rendering/BlockTextureManager';
 
 export interface LoadingProgress {
   loaded: number;
@@ -11,12 +12,14 @@ export class AssetLoader {
   private audioLoader: THREE.AudioLoader;
   private loadedTextures: Map<string, THREE.Texture> = new Map();
   private loadedAudio: Map<string, AudioBuffer> = new Map();
+  private blockTextureManager: BlockTextureManager;
   
   private onProgressCallback?: (progress: LoadingProgress) => void;
   
   constructor() {
     this.textureLoader = new THREE.TextureLoader();
     this.audioLoader = new THREE.AudioLoader();
+    this.blockTextureManager = new BlockTextureManager();
     
     // Set up texture loader defaults
     this.textureLoader.setPath('/assets/sprites/');
@@ -27,7 +30,11 @@ export class AssetLoader {
   }
   
   public async loadEssentialAssets(): Promise<void> {
-    await this.loadGameSprites();
+    // Load block textures and sprites in parallel
+    await Promise.all([
+      this.loadGameSprites(),
+      this.blockTextureManager.preloadAllTextures()
+    ]);
     console.log('Essential assets loaded');
   }
   
@@ -130,6 +137,11 @@ export class AssetLoader {
     console.log('Game audio loading will be implemented in Phase 10');
   }
   
+  // Get the block texture manager
+  public getBlockTextureManager(): BlockTextureManager {
+    return this.blockTextureManager;
+  }
+  
   // Cleanup method
   public dispose(): void {
     // Dispose of all loaded textures
@@ -137,6 +149,9 @@ export class AssetLoader {
       texture.dispose();
     }
     this.loadedTextures.clear();
+    
+    // Dispose block textures
+    this.blockTextureManager.dispose();
     
     // Clear audio (AudioBuffer doesn't need explicit disposal)
     this.loadedAudio.clear();

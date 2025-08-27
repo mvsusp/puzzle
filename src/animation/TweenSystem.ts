@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BlockDimensions, BoardDimensions } from '../rendering/BlockConstants';
 
 // Easing functions for animations
 export enum EasingType {
@@ -241,8 +242,9 @@ export class AnimationHelpers {
     tileSize: number,
     onComplete?: () => void
   ): string {
-    const fromY = fromRow * tileSize - (384 / 2) + (tileSize / 2); // Board height / 2
-    const toY = toRow * tileSize - (384 / 2) + (tileSize / 2);
+    // Use new block dimensions for vertical positioning
+    const fromY = fromRow * BlockDimensions.TILE_SIZE_Y - (BoardDimensions.BOARD_PIXEL_HEIGHT / 2) + (BlockDimensions.BLOCK_HEIGHT / 2);
+    const toY = toRow * BlockDimensions.TILE_SIZE_Y - (BoardDimensions.BOARD_PIXEL_HEIGHT / 2) + (BlockDimensions.BLOCK_HEIGHT / 2);
     
     return this.tween.createTween({
       target: mesh,
@@ -261,7 +263,8 @@ export class AnimationHelpers {
     tileSize: number,
     onComplete?: () => void
   ): string {
-    const offset = direction === 'left' ? -tileSize : tileSize;
+    // Use horizontal tile size for swapping
+    const offset = direction === 'left' ? -BlockDimensions.TILE_SIZE_X : BlockDimensions.TILE_SIZE_X;
     const fromPos = mesh.position.clone();
     const toPos = new THREE.Vector3(fromPos.x + offset, fromPos.y, fromPos.z);
     

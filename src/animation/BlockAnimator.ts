@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Block } from '../game/Block';
 import { BlockState } from '../game/BlockTypes';
 import { TweenSystem, AnimationHelpers, EasingType } from './TweenSystem';
+import { BlockDimensions } from '../rendering/BlockConstants';
 
 // Animation state tracking for blocks
 export interface BlockAnimationState {
@@ -19,10 +20,12 @@ export class BlockAnimator {
   private tweenSystem: TweenSystem;
   private animationStates = new Map<Block, BlockAnimationState>();
   private tileSize: number;
+  private tileSizeY: number;
 
-  constructor(tileSize: number = 32) {
+  constructor(tileSize: number = BlockDimensions.TILE_SIZE_X) {
     this.tweenSystem = TweenSystem.getInstance();
     this.tileSize = tileSize;
+    this.tileSizeY = BlockDimensions.TILE_SIZE_Y;
   }
 
   // Update animator each tick

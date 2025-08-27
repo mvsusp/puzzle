@@ -8,16 +8,19 @@ import { AnimationManager } from '../animation/AnimationManager';
 import { AssetLoader } from '../assets/AssetLoader';
 import { PixelPerfectSpriteRenderer } from './PixelPerfectSpriteRenderer';
 import { VisualEffectsManager, MatchEventData, GarbageEventData } from '../effects/VisualEffectsManager';
+import { BlockDimensions, BoardDimensions, getBlockPosition, getCursorDimensions } from './BlockConstants';
+import { BlockTextureManager } from './BlockTextureManager';
 
 export class EnhancedBoardRenderer {
-  // Rendering constants
-  public static readonly TILE_SIZE = 32;
-  public static readonly BOARD_PIXEL_WIDTH = Board.BOARD_WIDTH * EnhancedBoardRenderer.TILE_SIZE;
-  public static readonly BOARD_PIXEL_HEIGHT = (Board.TOP_ROW + 1) * EnhancedBoardRenderer.TILE_SIZE;
+  // Rendering constants - now using BlockConstants
+  public static readonly TILE_SIZE = BlockDimensions.TILE_SIZE_Y; // For backward compatibility
+  public static readonly BOARD_PIXEL_WIDTH = BoardDimensions.BOARD_PIXEL_WIDTH;
+  public static readonly BOARD_PIXEL_HEIGHT = BoardDimensions.BOARD_PIXEL_HEIGHT;
   
   private board: Board;
   private assetLoader: AssetLoader;
   private pixelPerfectRenderer: PixelPerfectSpriteRenderer;
+  private blockTextureManager: BlockTextureManager;
   private boardGroup: THREE.Group;
   private animationManager: AnimationManager;
   private visualEffectsManager: VisualEffectsManager | null = null;
@@ -52,6 +55,7 @@ export class EnhancedBoardRenderer {
     this.board = board;
     this.assetLoader = assetLoader;
     this.pixelPerfectRenderer = new PixelPerfectSpriteRenderer(assetLoader);
+    this.blockTextureManager = assetLoader.getBlockTextureManager();
     this.boardGroup = new THREE.Group();
     this.boardGroup.name = 'EnhancedBoardGroup';
     
@@ -67,10 +71,10 @@ export class EnhancedBoardRenderer {
       this.animationManager.setCursor(cursor);
     }
     
-    // Create reusable block geometry
+    // Create reusable block geometry with new dimensions
     this.blockGeometry = new THREE.PlaneGeometry(
-      EnhancedBoardRenderer.TILE_SIZE, 
-      EnhancedBoardRenderer.TILE_SIZE
+      BlockDimensions.BLOCK_WIDTH, 
+      BlockDimensions.BLOCK_HEIGHT
     );
     
     // Initialize rendering components synchronously first
@@ -97,79 +101,49 @@ export class EnhancedBoardRenderer {
   }
 
   private initializeBlockMaterials(): void {
-    if (!this.assetLoader) {
-      console.warn('AssetLoader not provided, falling back to colored materials');
-      this.initializeBlockMaterialsFallback();
-      return;
-    }
-
-    const spritesheet = this.assetLoader.getTexture('spritesheet');
-    if (!spritesheet) {
-      console.warn('Spritesheet not found, falling back to colored materials');
-      this.initializeBlockMaterialsFallback();
-      return;
-    }
-
-    const TILE_SIZE = 32;
-    const SPRITESHEET_WIDTH = 640;
-    const SPRITESHEET_HEIGHT = 480;
-
-    const uvs: Record<string, { x: number; y: number }> = {
-      purple: { x: 96, y: 0 },
-      yellow: { x: 0, y: 0 },
-      red: { x: 128, y: 0 },
-      cyan: { x: 64, y: 0 },
-      green: { x: 32, y: 0 },
-    };
-
-    const states: Record<string, { y: number }> = {
-      normal: { y: 0 },
-      landed: { y: 128 },
-      exploding: { y: 160 },
-    };
-
-    for (const [colorName] of Object.entries(BlockColor).filter(([k]) => isNaN(Number(k)))) {
-      for (const [stateName] of Object.entries(BlockState).filter(([k]) => isNaN(Number(k)))) {
+    // Use new BlockTextureManager for individual textures
+    const colors = [
+      BlockColor.RED,
+      BlockColor.GREEN,
+      BlockColor.CYAN,
+      BlockColor.YELLOW,
+      BlockColor.PURPLE
+    ];
+    
+    const states = [
+      BlockState.NORMAL,
+      BlockState.MATCHED,
+      BlockState.EXPLODING
+    ];
+    
+    for (const color of colors) {
+      for (const state of states) {
+        const colorName = BlockColor[color];
+        const stateName = state.toUpperCase(); // Convert lowercase enum value to uppercase for key
         const key = `${colorName}-${stateName}`;
-
-        // Try to get pixel-perfect texture first
-        const pixelTexture = this.pixelPerfectRenderer.getTexture(colorName, stateName);
         
-        if (pixelTexture) {
+        // Get texture from BlockTextureManager
+        const texture = this.blockTextureManager.getTexture(color, state);
+        
+        if (texture) {
           const material = new THREE.MeshLambertMaterial({
-            map: pixelTexture,
+            map: texture,
+            transparent: true,
+            opacity: 1.0,
+            emissive: 0x000000,
+            side: THREE.FrontSide,
+          });
+          this.blockMaterials.set(key, material);
+        } else {
+          // Fallback to color if texture not loaded
+          const fallbackColor = BLOCK_COLORS[color];
+          const material = new THREE.MeshLambertMaterial({
+            color: fallbackColor,
             transparent: true,
             opacity: 1.0,
             emissive: 0x000000,
           });
           this.blockMaterials.set(key, material);
-        } else {
-          // Fallback to UV-mapped texture (legacy method)
-          const uv = uvs[colorName.toLowerCase()];
-          const stateY = states[stateName.toLowerCase()]?.y || 0;
-
-          if (uv) {
-            const texture = spritesheet.clone();
-            texture.needsUpdate = true;
-            texture.magFilter = THREE.NearestFilter;
-            texture.minFilter = THREE.NearestFilter;
-
-            const x = uv.x / SPRITESHEET_WIDTH;
-            const y = (SPRITESHEET_HEIGHT - stateY - TILE_SIZE) / SPRITESHEET_HEIGHT;
-            const width = TILE_SIZE / SPRITESHEET_WIDTH;
-            const height = TILE_SIZE / SPRITESHEET_HEIGHT;
-
-            texture.repeat.set(width, height);
-            texture.offset.set(x, y);
-
-            const material = new THREE.MeshLambertMaterial({
-              map: texture,
-              transparent: true,
-              opacity: 1.0,
-              emissive: 0x000000,
-            });
-            this.blockMaterials.set(key, material);
-          }
         }
       }
     }
@@ -211,9 +185,12 @@ export class EnhancedBoardRenderer {
       for (let col = 0; col < Board.BOARD_WIDTH; col++) {
         // Create mesh with shared geometry
         const mesh = new THREE.Mesh(this.blockGeometry);
+        
+        // Use new positioning system with gaps
+        const pos = getBlockPosition(row, col);
         mesh.position.set(
-          col * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2),
-          row * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2),
+          pos.x,
+          pos.y,
           1 // Blocks in front of grid
         );
         mesh.name = `Block_${row}_${col}`;
@@ -257,13 +234,14 @@ export class EnhancedBoardRenderer {
       opacity: 0.5,
     });
     
-    // Vertical lines
+    // Vertical lines (between blocks, accounting for gaps)
     for (let col = 0; col <= Board.BOARD_WIDTH; col++) {
       const points = [];
-      const x = col * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2);
+      // Position lines at block edges with gaps
+      const x = col * BlockDimensions.TILE_SIZE_X - (BoardDimensions.BOARD_PIXEL_WIDTH / 2) - (BlockDimensions.BLOCK_GAP / 2);
       
-      points.push(new THREE.Vector3(x, -EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2, 0.1));
-      points.push(new THREE.Vector3(x, EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2, 0.1));
+      points.push(new THREE.Vector3(x, -BoardDimensions.BOARD_PIXEL_HEIGHT / 2, 0.1));
+      points.push(new THREE.Vector3(x, BoardDimensions.BOARD_PIXEL_HEIGHT / 2, 0.1));
       
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(geometry, lineMaterial.clone());
@@ -275,10 +253,11 @@ export class EnhancedBoardRenderer {
     // Horizontal lines
     for (let row = 0; row <= Board.TOP_ROW + 1; row++) {
       const points = [];
-      const y = row * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2);
+      // Position lines at block edges with gaps
+      const y = row * BlockDimensions.TILE_SIZE_Y - (BoardDimensions.BOARD_PIXEL_HEIGHT / 2) - (BlockDimensions.BLOCK_GAP / 2);
       
-      points.push(new THREE.Vector3(-EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2, y, 0.1));
-      points.push(new THREE.Vector3(EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2, y, 0.1));
+      points.push(new THREE.Vector3(-BoardDimensions.BOARD_PIXEL_WIDTH / 2, y, 0.1));
+      points.push(new THREE.Vector3(BoardDimensions.BOARD_PIXEL_WIDTH / 2, y, 0.1));
       
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const line = new THREE.Line(geometry, lineMaterial.clone());
@@ -293,9 +272,10 @@ export class EnhancedBoardRenderer {
     if (!cursor) return;
 
     // Create a 2-block-wide rectangular cursor outline
-    const cursorWidth = EnhancedBoardRenderer.TILE_SIZE * 2; // 2 blocks wide
-    const cursorHeight = EnhancedBoardRenderer.TILE_SIZE;
-    const borderThickness = 4; // Pixel thickness of cursor border
+    const cursorDims = getCursorDimensions();
+    const cursorWidth = cursorDims.width; // 2 blocks wide + gap
+    const cursorHeight = cursorDims.height;
+    const borderThickness = 8; // Slightly thicker for larger blocks
     
     // Create cursor as a rectangular outline using LineSegments
     const cursorGeometry = new THREE.EdgesGeometry(
@@ -407,8 +387,9 @@ export class EnhancedBoardRenderer {
     
     // Reset mesh position to its base grid position
     // (animations will override this as needed)
-    const baseX = col * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
-    const baseY = row * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
+    const pos = getBlockPosition(row, col);
+    const baseX = pos.x;
+    const baseY = pos.y;
     
     // Only set position if no animation is overriding it
     if (!this.isBlockAnimating(block)) {
@@ -478,8 +459,9 @@ export class EnhancedBoardRenderer {
     }
     
     // Reset mesh position to its base grid position
-    const baseX = col * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
-    const baseY = row * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
+    const pos = getBlockPosition(row, col);
+    const baseX = pos.x;
+    const baseY = pos.y;
     
     mesh.position.x = baseX;
     mesh.position.y = baseY;
@@ -665,8 +647,9 @@ export class EnhancedBoardRenderer {
   // Convert board coordinates to world position (accounting for board group offset)
   public boardToWorldPosition(row: number, col: number): THREE.Vector3 {
     // Calculate position relative to board
-    const boardRelativeX = col * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_WIDTH / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
-    const boardRelativeY = row * EnhancedBoardRenderer.TILE_SIZE - (EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT / 2) + (EnhancedBoardRenderer.TILE_SIZE / 2);
+    const pos = getBlockPosition(row, col);
+    const boardRelativeX = pos.x;
+    const boardRelativeY = pos.y;
     
     // Add the board group's world position offset
     const worldPosition = this.boardGroup.position.clone();

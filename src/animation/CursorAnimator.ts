@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Cursor } from '../game/Cursor';
 import { TweenSystem, EasingType } from './TweenSystem';
+import { BlockDimensions, getBlockPosition } from '../rendering/BlockConstants';
 
 export interface CursorAnimationState {
   isPulsing: boolean;
@@ -17,11 +18,13 @@ export class CursorAnimator {
   private cursorMaterial: THREE.Material | null = null;
   private animationState: CursorAnimationState;
   private tileSize: number;
+  private tileSizeY: number;
 
-  constructor(cursor: Cursor, tileSize: number = 32) {
+  constructor(cursor: Cursor, tileSize: number = BlockDimensions.TILE_SIZE_X) {
     this.tweenSystem = TweenSystem.getInstance();
     this.cursor = cursor;
     this.tileSize = tileSize;
+    this.tileSizeY = BlockDimensions.TILE_SIZE_Y;
     this.animationState = {
       isPulsing: false,
       isMoving: false
@@ -267,13 +270,13 @@ export class CursorAnimator {
 
   // Convert board coordinates to world position (adjusted for 2-block-wide cursor)
   private boardToWorldPosition(row: number, col: number): THREE.Vector3 {
-    const boardWidth = 6 * this.tileSize;
-    const boardHeight = 12 * this.tileSize; // TOP_ROW + 1
-
-    // Position cursor so it spans 2 blocks: current block and the one to the right
-    // Center the cursor between the two blocks
-    const cursorCenterX = col * this.tileSize - (boardWidth / 2) + this.tileSize; // One tile offset to center over 2 blocks
-    const cursorCenterY = row * this.tileSize - (boardHeight / 2) + (this.tileSize / 2);
+    // Get the position of the left block
+    const leftBlockPos = getBlockPosition(row, col);
+    
+    // Calculate cursor center (between two blocks, accounting for gap)
+    // Cursor spans from left edge of left block to right edge of right block
+    const cursorCenterX = leftBlockPos.x + (BlockDimensions.BLOCK_WIDTH / 2) + (BlockDimensions.BLOCK_GAP / 2);
+    const cursorCenterY = leftBlockPos.y;
 
     return new THREE.Vector3(
       cursorCenterX,

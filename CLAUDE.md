@@ -51,6 +51,15 @@ A faithful recreation of Panel de Pon / Tetris Attack / Puzzle League using Thre
 - Music system with dynamic tracks
 - Audio feedback for actions and events
 
+### ✅ Phase 11: High-Resolution Asset Migration (COMPLETE)
+- Migrated from 32x32 pixel blocks to 108x103 pixel blocks
+- Individual PNG textures for each block color and state
+- 10-pixel gaps between blocks for visual clarity
+- BlockTextureManager for efficient texture loading and caching
+- BlockConstants for centralized dimension management
+- Updated all animations and positioning for new dimensions
+- Camera and viewport adjusted for larger board (698x1346 pixels)
+
 ## Technical Architecture
 
 ### Core Systems
@@ -64,6 +73,11 @@ A faithful recreation of Panel de Pon / Tetris Attack / Puzzle League using Thre
 BOARD_WIDTH = 6, BOARD_HEIGHT = 24, TOP_ROW = 11
 FLOAT_TICKS = 12, BASE_EXPLOSION_TICKS = 61, ADD_EXPLOSION_TICKS = 9
 COUNTDOWN_TICKS = 188, STACK_RAISE_STEPS = 32
+
+// Block dimensions (new high-res assets)
+BLOCK_WIDTH = 108, BLOCK_HEIGHT = 103, BLOCK_GAP = 10
+TILE_SIZE_X = 118, TILE_SIZE_Y = 113  // Including gaps
+BOARD_PIXEL_WIDTH = 698, BOARD_PIXEL_HEIGHT = 1346
 ```
 
 ### Input Controls
@@ -77,10 +91,17 @@ COUNTDOWN_TICKS = 188, STACK_RAISE_STEPS = 32
 │   ├── core/           # GameEngine (main loop, debug UI)
 │   ├── game/           # Board, Block, Cursor, GameController, GarbageBlock
 │   ├── rendering/      # SceneManager, EnhancedBoardRenderer, AnimationManager
+│   │   ├── BlockConstants.ts     # Centralized block dimensions
+│   │   └── BlockTextureManager.ts # Individual texture loading
 │   ├── input/          # InputManager
 │   ├── animation/      # Animation system components
 │   └── main.ts
-├── tests/              # Comprehensive test suites (227 tests passing)
+├── public/
+│   └── assets/sprites/blocks/  # High-res block textures
+│       ├── normal/     # Normal state blocks
+│       ├── landed/     # Matched/landed state blocks
+│       └── blink/      # Exploding state blocks
+├── tests/              # Comprehensive test suites (218 tests passing)
 └── original/           # Reference C++ implementation
 ```
 
@@ -88,7 +109,7 @@ COUNTDOWN_TICKS = 188, STACK_RAISE_STEPS = 32
 
 ### Essential Commands
 ```bash
-npm run dev           # Start dev server (localhost:3001)
+npm run dev           # Start dev server (localhost:3000)
 npm run lint          # ESLint check (ALWAYS run before commit)
 npm run type-check    # TypeScript check (ALWAYS run before commit)
 npm test              # Run all tests (ALWAYS run before commit)
@@ -96,8 +117,8 @@ npm test              # Run all tests (ALWAYS run before commit)
 
 ### Pre-Commit Checklist
 1. **Run full quality check**: `npm run lint && npm run type-check && npm test`
-2. **Verify no regressions**: All 227 tests must pass
-3. **Test visual changes**: Check at `localhost:3001` with debug UI (F3)
+2. **Verify no regressions**: All 218 tests must pass
+3. **Test visual changes**: Check at `localhost:3000` with debug UI (F3)
 4. **Reference original**: Compare behavior with C++ implementation when in doubt
 
 ### Debugging Tips
@@ -114,10 +135,12 @@ The game currently has:
 - Working input system with cursor control and swapping
 - Debug UI showing performance, input states, and game stats
 - Score system with chain/combo bonuses
+- High-resolution 108x103 pixel block assets with 10px gaps
+- Individual texture loading system for optimal performance
 
 ## Remaining Implementation Phases
 
-### Phase 11-15: Polish & Release
+### Phase 12-15: Polish & Release
 - Game modes (puzzle, versus, endless)
 - AI opponent system
 - Configuration and persistence
@@ -129,6 +152,8 @@ The game currently has:
 ### Key Files
 - `src/game/Board.ts`: Core game logic with gravity, matching, chains
 - `src/rendering/EnhancedBoardRenderer.ts`: Visual rendering with animations
+- `src/rendering/BlockConstants.ts`: Centralized block dimensions and positioning helpers
+- `src/rendering/BlockTextureManager.ts`: Individual texture loading and caching system
 - `src/game/GarbageBlock.ts`: Garbage block implementation
 - `src/animation/AnimationManager.ts`: Animation system coordination
 - `original/panel-pop`: C++ reference implementation
@@ -138,15 +163,20 @@ The game currently has:
 2. **Enum comparisons**: Always use `TileType.AIR` not `'AIR'` string comparisons
 3. **Animation timing**: All effects use 60 FPS fixed timestep for frame-perfect gameplay
 4. **Garbage spawning**: Spawns in buffer area (row 16+) then falls into view
-5. **Test coverage**: 227 tests passing, always run before commits
+5. **Test coverage**: 218 tests passing, always run before commits
 6. **Stack raising**: Force raise bypasses timer but still steps per tick (32 steps/row)
+7. **Block textures**: Individual PNG files per color/state, loaded via BlockTextureManager
+8. **Color mapping**: Game uses `CYAN` internally, files must be named `cyan.png` (not `blue.png`)
+9. **Board dimensions**: Board size increased from 192x384 to 698x1346 pixels with gaps
 
 ### Recent Fixes & Resolved Issues
 - **Stack Raise Bug (Fixed)**: `stackRaiseForced` was being reset prematurely on every tick instead of only after full row raise completion. Fixed in `Board.ts:handleStackRaising()` to match original C++ behavior.
 - **Board Movement**: Tiles correctly shift up during stack raise with buffer row replacing bottom row
+- **Asset Migration (Complete)**: Migrated from 32x32 sprites to 108x103 individual PNG textures with 10px gaps. All animations and positioning updated accordingly.
+- **Color Naming Fix**: Renamed blue assets to cyan to match internal `BlockColor.CYAN` enum
 
 ## Testing & Verification
-1. Visual testing at `localhost:3001` with debug UI (F3)
+1. Visual testing at `localhost:3000` with debug UI (F3)
 2. Test garbage blocks with Q key
 3. Verify chain/combo mechanics work correctly
 4. Compare timing with original C++ reference
@@ -165,5 +195,6 @@ The game currently has:
 2. **Respect the fixed timestep**: All timing must be in ticks (1/60 second), not real time
 3. **Test edge cases**: Stack raising at boundaries, garbage blocks at edges, chain breaks
 4. **Maintain separation**: Keep game logic (Board.ts) separate from rendering (EnhancedBoardRenderer.ts)
+5. **Asset naming**: Block assets must match internal color names (`cyan.png`, not `blue.png`)
 
-The core gameplay mechanics are complete and functional. Focus next on visual polish and game state management.
+The core gameplay mechanics are complete and functional with high-resolution visual assets. Focus next on game modes and multiplayer features.
