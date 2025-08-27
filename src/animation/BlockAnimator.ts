@@ -30,7 +30,6 @@ export class BlockAnimator {
 
   // Update animator each tick
   public tick(): void {
-    this.tweenSystem.tick();
     this.updateAnimationStates();
   }
 

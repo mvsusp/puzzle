@@ -42,7 +42,6 @@ export class CursorAnimator {
 
   // Update animator each tick
   public tick(): void {
-    this.tweenSystem.tick();
     this.updateCursorEffects();
   }
 
