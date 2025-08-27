@@ -37,8 +37,7 @@ export class GameEngine {
       alpha: false,
       powerPreference: 'high-performance',
     });
-    
-    this.renderer.setSize(800, 600);
+    // Set pixel ratio before sizing to ensure correct backbuffer
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(0x000000, 1.0);
     
@@ -61,6 +60,10 @@ export class GameEngine {
     
     // Set up event listeners
     this.setupEventListeners();
+
+    // Perform an initial resize so the camera and renderer
+    // match the actual window size before the first frame
+    this.handleResize();
     
     // Enable debug mode in development
     if (import.meta.env?.DEV) {
@@ -234,14 +237,9 @@ export class GameEngine {
   }
   
   private handleResize(): void {
-    const canvas = this.renderer.domElement;
-    const container = canvas.parentElement;
-    
-    if (!container) return;
-    
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+
     this.renderer.setSize(width, height);
     this.sceneManager.handleResize(width, height);
   }
