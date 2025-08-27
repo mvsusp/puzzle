@@ -219,6 +219,7 @@ export class AnimationManager {
 
       case BlockState.EXPLODING:
         if (oldState !== BlockState.EXPLODING) {
+          // Start explosion visuals; rotation will be ensured post-registration in renderer
           this.blockAnimator.startExplosionAnimation(block, mesh, material);
         }
         break;

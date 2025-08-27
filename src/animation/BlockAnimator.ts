@@ -28,6 +28,21 @@ export class BlockAnimator {
     this.tileSizeY = BlockDimensions.TILE_SIZE_Y;
   }
 
+  // Trigger a 90° Y-axis rotation when a match occurs.
+  // Idempotent per-mesh: uses mesh.userData.matchRotated to avoid duplicates.
+  public startMatchRotation(_block: Block, mesh: THREE.Mesh, duration: number = 12): void {
+    if (mesh.userData && mesh.userData.matchRotated) return;
+    if (mesh.userData) mesh.userData.matchRotated = true; else mesh.userData = { matchRotated: true };
+
+    const originalRotation = mesh.rotation.clone();
+    this.tweenSystem.createTween({
+      target: mesh,
+      duration,
+      from: { rotation: originalRotation },
+      to: { rotation: new THREE.Euler(originalRotation.x, originalRotation.y + Math.PI / 2, originalRotation.z) },
+    });
+  }
+
   // Update animator each tick
   public tick(): void {
     this.updateAnimationStates();
@@ -243,12 +258,13 @@ export class BlockAnimator {
           easing: EasingType.EASE_IN,
         });
 
-        // Rotation animation - 90 degrees on Y-axis from current rotation
+        // Keep any rotation that may have been applied on match; no extra spin here.
+        // Complete once fade/scale are done.
         this.tweenSystem.createTween({
           target: mesh,
           duration: fadeOutDuration,
           from: { rotation: originalRotation },
-          to: { rotation: new THREE.Euler(originalRotation.x, originalRotation.y + Math.PI / 2, originalRotation.z) },
+          to: { rotation: originalRotation },
           easing: EasingType.LINEAR,
           onComplete
         });

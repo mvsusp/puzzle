@@ -351,6 +351,10 @@ export class EnhancedBoardRenderer {
             this.animationManager.unregisterBlockMesh(mesh.userData.registeredBlock);
             mesh.userData.registeredBlock = null;
           }
+          // Ensure transform is reset when tile becomes empty
+          mesh.userData.matchRotated = false;
+          mesh.rotation.set(0, 0, 0);
+          mesh.scale.set(1, 1, 1);
         }
       }
     }
@@ -376,6 +380,10 @@ export class EnhancedBoardRenderer {
         }
         this.animationManager.registerBlockMesh(block, mesh, material);
         mesh.userData.registeredBlock = block;
+        // Reset per-mesh rotation/scale when ownership changes to avoid inheriting prior effects
+        mesh.userData.matchRotated = false;
+        mesh.rotation.set(0, 0, 0);
+        mesh.scale.set(1, 1, 1);
       }
     } else {
       // Fallback for unknown material combinations
@@ -427,6 +435,15 @@ export class EnhancedBoardRenderer {
     
     // Apply state-based visual effects (non-animated fallbacks)
     this.applyBlockStateFallbacks(mesh, block, tile);
+
+    // Ensure match rotation is applied to the correct mesh after registration
+    if ((block.state === BlockState.MATCHED || block.state === BlockState.EXPLODING) && !mesh.userData.matchRotated) {
+      // Access BlockAnimator via AnimationManager
+      const blockAnimator = (this.animationManager as any)['blockAnimator'];
+      if (blockAnimator && typeof blockAnimator.startMatchRotation === 'function') {
+        blockAnimator.startMatchRotation(block, mesh);
+      }
+    }
   }
 
   // Apply visual effects for blocks not handled by animations
@@ -438,7 +455,8 @@ export class EnhancedBoardRenderer {
     
     // Reset transform for non-animated blocks
     mesh.scale.set(1, 1, 1);
-    mesh.rotation.z = 0;
+    // Ensure Y rotation is reset so previously matched tiles don't stay edge-on invisible
+    mesh.rotation.set(0, 0, 0);
     material.opacity = 1.0;
     
     // Chain indicator
