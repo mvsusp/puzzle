@@ -49,7 +49,7 @@ export class GameModeManager {
     this.gameController = gameController;
     this.idleTickCounter = 0;
     
-    console.log('GameModeManager: Initialized');
+    // console.log('GameModeManager: Initialized');
   }
   
   /**
@@ -61,7 +61,7 @@ export class GameModeManager {
       this.stopCurrentMode();
     }
     
-    console.log(`GameModeManager: Starting ${gameMode}`);
+    // console.log(`GameModeManager: Starting ${gameMode}`);
     
     // Create and initialize new mode
     this.currentMode = this.createModeInstance(gameMode);
@@ -88,7 +88,7 @@ export class GameModeManager {
    */
   public stopCurrentMode(): void {
     if (this.currentMode) {
-      console.log(`GameModeManager: Stopping ${this.currentMode.getMode()}`);
+      // console.log(`GameModeManager: Stopping ${this.currentMode.getMode()}`);
       this.currentMode.stop();
       this.currentMode = null;
     }
@@ -218,7 +218,7 @@ export class GameModeManager {
     
     // Check if we should start demo mode
     if (this.shouldStartDemoMode()) {
-      console.log('GameModeManager: Idle timeout reached, starting demo mode');
+      // console.log('GameModeManager: Idle timeout reached, starting demo mode');
       this.startMode(GameMode.DEMO);
     }
   }
@@ -249,7 +249,7 @@ export class GameModeManager {
     // This would involve positioning two boards side by side
     // and updating the camera to show both
     
-    console.log('GameModeManager: Setting up dual board rendering');
+    // console.log('GameModeManager: Setting up dual board rendering');
   }
   
   /**
@@ -273,7 +273,7 @@ export class GameModeManager {
    */
   public forceEndCurrentGame(): void {
     if (this.currentMode) {
-      console.log('GameModeManager: Force ending current game');
+      // console.log('GameModeManager: Force ending current game');
       this.stopCurrentMode();
     }
   }

@@ -16,6 +16,9 @@ export class Block {
   public garbageFallChain: boolean = false; // Falling from garbage transformation
   public explosionOrder: number = 0; // Sound effect ordering
   
+  // Swap animation target position (for absolute positioning)
+  public swapTargetPosition?: { x: number; y: number };
+  
   // Explosion timing properties
   public explosionTicks: number = 0; // Total explosion duration
   public explosionAnimationTicks: number = 0; // Animation duration
@@ -62,6 +65,7 @@ export class Block {
       if (this.swapTimer <= 0) {
         this.state = BlockState.FLOATING;
         this.floatTimer = 12; // Float for 12 ticks after swap
+        delete this.swapTargetPosition; // Clear target position
       }
     }
     
@@ -78,9 +82,12 @@ export class Block {
   }
   
   // Start swap animation
-  public startSwap(direction: 'left' | 'right'): void {
+  public startSwap(direction: 'left' | 'right', targetPosition?: { x: number; y: number }): void {
     this.state = direction === 'left' ? BlockState.SWAPPING_LEFT : BlockState.SWAPPING_RIGHT;
     this.swapTimer = 3; // 3 tick swap delay
+    if (targetPosition) {
+      this.swapTargetPosition = targetPosition; // Store target for absolute positioning
+    }
   }
   
   // Mark block for matching

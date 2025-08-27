@@ -194,11 +194,27 @@ export class AnimationManager {
         break;
 
       case BlockState.SWAPPING_LEFT:
-        this.blockAnimator.startSwapAnimation(block, mesh, 'left');
+        if (block.swapTargetPosition) {
+          // Use absolute positioning if target is available
+          const targetPos = new THREE.Vector3(block.swapTargetPosition.x, block.swapTargetPosition.y, mesh.position.z);
+          console.log(`[ANIMATION] Using ABSOLUTE positioning for LEFT swap: from (${mesh.position.x.toFixed(2)}, ${mesh.position.y.toFixed(2)}) to (${targetPos.x.toFixed(2)}, ${targetPos.y.toFixed(2)})`);
+          this.blockAnimator.startSwapAnimationToPosition(block, mesh, targetPos);
+        } else {
+          console.log(`[ANIMATION] Using RELATIVE positioning for LEFT swap (no target)`);
+          this.blockAnimator.startSwapAnimation(block, mesh, 'left');
+        }
         break;
 
       case BlockState.SWAPPING_RIGHT:
-        this.blockAnimator.startSwapAnimation(block, mesh, 'right');
+        if (block.swapTargetPosition) {
+          // Use absolute positioning if target is available
+          const targetPos = new THREE.Vector3(block.swapTargetPosition.x, block.swapTargetPosition.y, mesh.position.z);
+          console.log(`[ANIMATION] Using ABSOLUTE positioning for RIGHT swap: from (${mesh.position.x.toFixed(2)}, ${mesh.position.y.toFixed(2)}) to (${targetPos.x.toFixed(2)}, ${targetPos.y.toFixed(2)})`);
+          this.blockAnimator.startSwapAnimationToPosition(block, mesh, targetPos);
+        } else {
+          console.log(`[ANIMATION] Using RELATIVE positioning for RIGHT swap (no target)`);
+          this.blockAnimator.startSwapAnimation(block, mesh, 'right');
+        }
         break;
 
       case BlockState.EXPLODING:

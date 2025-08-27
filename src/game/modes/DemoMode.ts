@@ -63,7 +63,7 @@ export class DemoMode extends BaseGameMode {
   }
   
   protected onStart(): void {
-    console.log('DemoMode: Starting Demo Mode');
+    // console.log('DemoMode: Starting Demo Mode');
     
     this.userInputDetected = false;
     this.idleTimer = 0;

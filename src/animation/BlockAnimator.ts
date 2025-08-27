@@ -67,7 +67,7 @@ export class BlockAnimator {
     });
   }
 
-  // Start swap animation for a block
+  // Start swap animation for a block (relative movement - legacy)
   public startSwapAnimation(
     block: Block,
     mesh: THREE.Mesh,
@@ -87,6 +87,32 @@ export class BlockAnimator {
     this.animationStates.set(block, animState);
 
     AnimationHelpers.animateBlockSwap(mesh, direction, this.tileSize, () => {
+      animState.isSwapping = false;
+      // Note: The renderer will reset mesh position to correct grid location
+      // once isSwapping becomes false in the next render cycle
+      if (onComplete) onComplete();
+    });
+  }
+
+  // Start swap animation for a block (absolute positioning)
+  public startSwapAnimationToPosition(
+    block: Block,
+    mesh: THREE.Mesh,
+    targetPosition: THREE.Vector3,
+    onComplete?: () => void
+  ): void {
+    this.stopBlockAnimations(block);
+
+    const animState: BlockAnimationState = {
+      isFalling: false,
+      isSwapping: true,
+      isExploding: false,
+      isFloating: false
+    };
+
+    this.animationStates.set(block, animState);
+
+    AnimationHelpers.animateBlockSwapToPosition(mesh, targetPosition, () => {
       animState.isSwapping = false;
       if (onComplete) onComplete();
     });
@@ -115,6 +141,10 @@ export class BlockAnimator {
     // Create compound explosion animation
     this.createExplosionEffect(mesh, material, explosionTicks, () => {
       animState.isExploding = false;
+      // Restore material properties for blocks that survive the explosion
+      material.opacity = 1.0;
+      mesh.scale.set(1, 1, 1);
+      mesh.rotation.set(0, 0, 0);
       if (onComplete) onComplete();
     });
   }
@@ -184,6 +214,7 @@ export class BlockAnimator {
   ): void {
     const originalScale = mesh.scale.clone();
     const originalOpacity = material.opacity;
+    const originalRotation = mesh.rotation.clone();
 
     // Phase 1: Quick scale up (first 20% of animation)
     const scaleUpDuration = Math.floor(duration * 0.2);
@@ -213,12 +244,12 @@ export class BlockAnimator {
           easing: EasingType.EASE_IN,
         });
 
-        // Rotation animation
+        // Rotation animation - 90 degrees on Y-axis from current rotation
         this.tweenSystem.createTween({
           target: mesh,
           duration: fadeOutDuration,
-          from: { rotation: new THREE.Euler(0, 0, 0) },
-          to: { rotation: new THREE.Euler(0, 0, Math.PI * 2) },
+          from: { rotation: originalRotation },
+          to: { rotation: new THREE.Euler(originalRotation.x, originalRotation.y + Math.PI / 2, originalRotation.z) },
           easing: EasingType.LINEAR,
           onComplete
         });

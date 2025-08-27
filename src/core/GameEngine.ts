@@ -48,11 +48,11 @@ export class GameEngine {
     this.sceneManager = new SceneManager(this.assetLoader);
     
     // Initialize Phase 9 systems
-    console.log('GameEngine: Initializing StateManager');
+    // console.log('GameEngine: Initializing StateManager');
     this.stateManager = StateManager.getInstance();
-    console.log('GameEngine: Initializing UIManager');
+    // console.log('GameEngine: Initializing UIManager');
     this.uiManager = UIManager.getInstance();
-    console.log('GameEngine: Phase 9 systems initialized');
+    // console.log('GameEngine: Phase 9 systems initialized');
     
     // Initialize Phase 10 systems (Audio)
     console.log('GameEngine: Initializing AudioSystem');
@@ -411,7 +411,7 @@ export class GameEngine {
     const board = this.sceneManager.getBoard();
     if (board) {
       this.stateManager.initialize(board, gameController, this.audioSystem);
-      console.log('StateManager initialized with board, game controller, and audio system');
+      // console.log('StateManager initialized with board, game controller, and audio system');
     }
   }
   

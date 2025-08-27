@@ -391,10 +391,38 @@ export class EnhancedBoardRenderer {
     const baseX = pos.x;
     const baseY = pos.y;
     
-    // Only set position if no animation is overriding it
-    if (!this.isBlockAnimating(block)) {
+    // Special handling for swap states
+    if (block.state === BlockState.SWAPPING_LEFT || block.state === BlockState.SWAPPING_RIGHT) {
+      // Debug: Log when we're handling a swap state
+      if (!mesh.userData.swapDebugLogged) {
+        console.log(`[SWAP DEBUG] Row ${row}, Col ${col}:`);
+        console.log(`  - Block color: ${BlockColor[block.color]}`);
+        console.log(`  - Block state: ${block.state}`);
+        console.log(`  - Mesh position before: x=${mesh.position.x.toFixed(2)}`);
+        console.log(`  - Grid position: x=${baseX.toFixed(2)}`);
+        console.log(`  - Has target position: ${!!block.swapTargetPosition}`);
+        if (block.swapTargetPosition) {
+          console.log(`  - Target position: x=${block.swapTargetPosition.x.toFixed(2)}`);
+        }
+        mesh.userData.swapDebugLogged = true;
+      }
+      
+      // Only reset mesh position for relative animations (when no target position)
+      if (!block.swapTargetPosition) {
+        // For relative animations, set the mesh to its grid position first
+        mesh.position.x = baseX;
+        mesh.position.y = baseY;
+        console.log(`  - RESET mesh position for relative animation`);
+      } else {
+        console.log(`  - PRESERVING mesh position for absolute animation`);
+      }
+      // For absolute animations, leave mesh at current position - animation will handle positioning
+    } else if (!this.isBlockAnimating(block)) {
+      // Only set position if no animation is overriding it
       mesh.position.x = baseX;
       mesh.position.y = baseY;
+      // Clear debug flag when not swapping
+      mesh.userData.swapDebugLogged = false;
     }
     
     // Apply state-based visual effects (non-animated fallbacks)

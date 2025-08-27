@@ -256,17 +256,36 @@ export class AnimationHelpers {
     });
   }
 
-  // Block swap animation
+  // Block swap animation - relative movement (legacy)
   static animateBlockSwap(
     mesh: THREE.Mesh,
     direction: 'left' | 'right',
     tileSize: number,
     onComplete?: () => void
   ): string {
-    // Use horizontal tile size for swapping
+    // Calculate exactly one tile movement in the specified direction
     const offset = direction === 'left' ? -BlockDimensions.TILE_SIZE_X : BlockDimensions.TILE_SIZE_X;
     const fromPos = mesh.position.clone();
     const toPos = new THREE.Vector3(fromPos.x + offset, fromPos.y, fromPos.z);
+    
+    return this.tween.createTween({
+      target: mesh,
+      duration: 3, // 3 ticks for swap (matches original)
+      from: { position: fromPos },
+      to: { position: toPos },
+      easing: EasingType.EASE_IN_OUT,
+      onComplete
+    });
+  }
+
+  // Block swap animation - absolute positioning
+  static animateBlockSwapToPosition(
+    mesh: THREE.Mesh,
+    targetPosition: THREE.Vector3,
+    onComplete?: () => void
+  ): string {
+    const fromPos = mesh.position.clone();
+    const toPos = targetPosition.clone();
     
     return this.tween.createTween({
       target: mesh,

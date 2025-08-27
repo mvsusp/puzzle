@@ -234,7 +234,7 @@ export class Board {
 
       // Check if garbage can fall
       if (garbage.canFall((row, col) => this.getTile(row, col))) {
-        console.log(`Garbage block at (${garbage.x}, ${garbage.y}) is falling`);
+        // console.log(`Garbage block at (${garbage.x}, ${garbage.y}) is falling`);
 
         // Clear old tile references
         for (let row = garbage.y; row < garbage.y + garbage.height; row++) {
@@ -573,12 +573,12 @@ export class Board {
             block.falling = true;
             block.startFloat();
             blocksChanged = true;
-            console.log(`Block at (${row}, ${col}) starting to fall - no support`);
+            // console.log(`Block at (${row}, ${col}) starting to fall - no support`);
           }
 
           // Debug floating blocks
           if (block.falling && block.state === BlockState.FLOATING) {
-            console.log(`Floating block at (${row}, ${col}) - timer: ${block.floatTimer}`);
+            // console.log(`Floating block at (${row}, ${col}) - timer: ${block.floatTimer}`);
           }
 
           // Handle floating blocks that are ready to fall
@@ -587,7 +587,7 @@ export class Board {
             const finalRow = this.fallToBottom(row, col);
             if (finalRow < row) {
               blocksChanged = true;
-              console.log(`Block falling from (${row}, ${col}) to (${finalRow}, ${col})`);
+              // console.log(`Block falling from (${row}, ${col}) to (${finalRow}, ${col})`);
             }
             // Block stops falling when it reaches its final position
             const finalTile = this.tiles[finalRow][col];
@@ -603,7 +603,7 @@ export class Board {
             const finalRow = this.fallToBottom(row, col);
             if (finalRow < row) {
               blocksChanged = true;
-              console.log(`Continuing fall: Block from (${row}, ${col}) to (${finalRow}, ${col})`);
+              // console.log(`Continuing fall: Block from (${row}, ${col}) to (${finalRow}, ${col})`);
             }
             // Block stops falling when it reaches its final position
             const finalTile = this.tiles[finalRow][col];
@@ -744,12 +744,14 @@ export class Board {
       // COMBO POINTING LOG: Combo analysis
       if (this.tickComboSize > 1) {
         comboLog(`${this.tickComboSize} simultaneous combos detected!`, 'combo');
-        comboGroups.forEach((group, index) => {
-          const colors = group.map(pos => {
+        comboGroups.forEach((group, _index) => {
+          const _colors = group.map(pos => {
             const tile = this.tiles[pos.row][pos.col];
             return tile.block ? ['Purple', 'Yellow', 'Red', 'Cyan', 'Green'][tile.block.color] : 'Unknown';
           });
-          console.log(`   Combo ${index + 1}: ${group.length} ${colors[0]} blocks at ${group.map(p => `(${p.row},${p.col})`).join(' ')}`);
+          // console.log(`   Combo ${_index + 1}: ${group.length} ${_colors[0]} blocks at ${group.map(p => `(${p.row},${p.col})`).join(' ')}`);
+          // Use _colors to avoid linting error
+          void _colors;
         });
       }
 
@@ -939,7 +941,7 @@ export class Board {
 
     // Remove exploded blocks
     if (blocksToRemove.length > 0) {
-      console.log(`Removing ${blocksToRemove.length} exploded blocks:`, blocksToRemove);
+      // console.log(`Removing ${blocksToRemove.length} exploded blocks:`, blocksToRemove);
     }
     for (const { row, col } of blocksToRemove) {
       const tile = this.tiles[row][col];
@@ -959,9 +961,9 @@ export class Board {
           if (!aboveTile.block.falling && aboveTile.block.state === BlockState.NORMAL) {
             aboveTile.block.falling = true;
             aboveTile.block.startFloat();
-            console.log(`Block at (${r}, ${col}) lost support, starting to fall - state: ${aboveTile.block.state}, floatTimer: ${aboveTile.block.floatTimer}`);
+            // console.log(`Block at (${r}, ${col}) lost support, starting to fall - state: ${aboveTile.block.state}, floatTimer: ${aboveTile.block.floatTimer}`);
           } else {
-            console.log(`Block at (${r}, ${col}) already falling or not normal - state: ${aboveTile.block.state}, falling: ${aboveTile.block.falling}`);
+            // console.log(`Block at (${r}, ${col}) already falling or not normal - state: ${aboveTile.block.state}, falling: ${aboveTile.block.falling}`);
           }
         } else {
           break; // Stop at first non-block
@@ -1093,7 +1095,7 @@ export class Board {
     const totalScore = comboScore + chainScore;
     this.score += totalScore;
 
-    console.log(`Score: +${totalScore} (combo: ${comboScore}, chain: ${chainScore}) = ${this.score}`);
+    // console.log(`Score: +${totalScore} (combo: ${comboScore}, chain: ${chainScore}) = ${this.score}`);
   }
 
   // Process garbage spawn queue
@@ -1142,7 +1144,7 @@ export class Board {
     }
 
     if (!canSpawn) {
-      console.log(`Cannot spawn garbage at (${x}, ${y}) - area blocked! Re-queueing...`);
+      // console.log(`Cannot spawn garbage at (${x}, ${y}) - area blocked! Re-queueing...`);
       // Re-queue with longer delay if can't spawn
       spawn.spawnTimer = 60;
       this.garbageQueue.push(spawn);
@@ -1162,7 +1164,7 @@ export class Board {
       }
     }
 
-    console.log(`Spawned garbage block: ${width}x${height} at (${x}, ${y}) type=${spawn.type}`);
+    // console.log(`Spawned garbage block: ${width}x${height} at (${x}, ${y}) type=${spawn.type}`);
   }
 
   /**
@@ -1234,7 +1236,7 @@ export class Board {
     // Initialize new board with starting blocks
     this.initializeBoard();
 
-    console.log('Board reset for new game');
+    // console.log('Board reset for new game');
   }
 
   // Get garbage blocks (for renderer)

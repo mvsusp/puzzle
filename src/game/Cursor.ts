@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { Board } from './Board';
+import { getBlockPosition } from '../rendering/BlockConstants';
+import { BlockColor } from './BlockTypes';
 
 export class Cursor {
   // Position constants
@@ -178,6 +180,10 @@ export class Cursor {
     
     if (!leftTile || !rightTile) return false;
     
+    // Store original blocks before swap for animation
+    const originalLeftBlock = leftTile.block;
+    const originalRightBlock = rightTile.block;
+    
     // Swap the tiles by exchanging their contents
     const tempType = leftTile.type;
     const tempBlock = leftTile.block;
@@ -194,12 +200,21 @@ export class Cursor {
     rightTile.garbageRef = tempGarbageRef;
     rightTile.chain = tempChain;
     
-    // Start swap animations for blocks
-    if (leftTile.block) {
-      leftTile.block.startSwap('right');
+    // Calculate absolute target positions for each block
+    const leftPosition = getBlockPosition(this.targetY, this.targetX);
+    const rightPosition = getBlockPosition(this.targetY, this.targetX + 1);
+    
+    console.log(`[CURSOR] Swap targets: left=(${leftPosition.x.toFixed(2)}, ${leftPosition.y.toFixed(2)}), right=(${rightPosition.x.toFixed(2)}, ${rightPosition.y.toFixed(2)})`);
+    
+    // Start swap animations with absolute target positions
+    // Original left block moves to right position, original right block moves to left position
+    if (originalLeftBlock) {
+      console.log(`[CURSOR] Setting RIGHT target for original left block (${BlockColor[originalLeftBlock.color]})`);
+      originalLeftBlock.startSwap('right', rightPosition);  // Left block moves to right position
     }
-    if (rightTile.block) {
-      rightTile.block.startSwap('left');
+    if (originalRightBlock) {
+      console.log(`[CURSOR] Setting LEFT target for original right block (${BlockColor[originalRightBlock.color]})`);
+      originalRightBlock.startSwap('left', leftPosition);   // Right block moves to left position
     }
     
     // Set grace period to prevent immediate stack raising

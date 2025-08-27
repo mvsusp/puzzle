@@ -75,12 +75,12 @@ export class StateManager {
   private readonly ENABLE_TITLE_AUTO_DEMO = false; // Disable auto demo by default
 
   private constructor() {
-    console.log('StateManager: Constructor called - initializing with LOADING state');
+    // console.log('StateManager: Constructor called - initializing with LOADING state');
     // Initialize with loading state (but don't emit events yet - no listeners exist)
     this.activeUIOverlays.clear();
     const overlays = StateUtils.getUIOverlays(this.currentState);
     overlays.forEach(overlay => this.activeUIOverlays.add(overlay));
-    console.log('StateManager: Constructor completed');
+    // console.log('StateManager: Constructor completed');
   }
 
   /**
@@ -88,10 +88,10 @@ export class StateManager {
    */
   public static getInstance(): StateManager {
     if (!StateManager.instance) {
-      console.log('StateManager: Creating new singleton instance');
+      // console.log('StateManager: Creating new singleton instance');
       StateManager.instance = new StateManager();
     } else {
-      console.log('StateManager: Returning existing singleton instance');
+      // console.log('StateManager: Returning existing singleton instance');
     }
     return StateManager.instance;
   }
@@ -100,7 +100,7 @@ export class StateManager {
    * Reset singleton instance (FOR TESTING ONLY)
    */
   public static resetInstance(): void {
-    console.log('StateManager: Resetting singleton instance (TEST ONLY)');
+    // console.log('StateManager: Resetting singleton instance (TEST ONLY)');
     StateManager.instance = null;
   }
 
@@ -116,14 +116,14 @@ export class StateManager {
     const gameModeManager = GameModeManager.getInstance();
     gameModeManager.initialize(board, gameController);
 
-    console.log('StateManager initialized with game components');
+    // console.log('StateManager initialized with game components');
   }
 
   /**
    * Initialize the UI system (call after UIManager is ready)
    */
   public initializeUI(): void {
-    console.log('StateManager: Initializing UI system');
+    // console.log('StateManager: Initializing UI system');
     // Emit initial UI state now that listeners are registered
     this.updateUIOverlays();
 
@@ -131,7 +131,7 @@ export class StateManager {
     if (this.currentState !== GameState.LOADING) {
       this.notifyStateChange(GameState.LOADING, this.currentState);
     }
-    console.log('StateManager: UI system initialized');
+    // console.log('StateManager: UI system initialized');
   }
 
   /**
@@ -166,7 +166,7 @@ export class StateManager {
    * Request a state transition
    */
   public requestTransition(transition: StateTransition, data?: StateData): boolean {
-    console.log(`StateManager: requestTransition called - ${transition} from ${this.currentState}`);
+    // console.log(`StateManager: requestTransition called - ${transition} from ${this.currentState}`);
 
     if (this.transitionInProgress) {
       console.warn('Transition already in progress, ignoring request:', transition);
@@ -178,7 +178,7 @@ export class StateManager {
       return false;
     }
 
-    console.log(`StateManager: Transition ${transition} is valid, executing...`);
+    // console.log(`StateManager: Transition ${transition} is valid, executing...`);
     return this.executeTransition(transition, data);
   }
 
@@ -194,7 +194,7 @@ export class StateManager {
       return false;
     }
 
-    console.log(`State transition: ${oldState} -> ${newState} (${transition})`);
+    // console.log(`State transition: ${oldState} -> ${newState} (${transition}`);
 
     this.transitionInProgress = true;
 
@@ -226,7 +226,7 @@ export class StateManager {
     this.updateUIOverlays();
 
     // Notify listeners (this should trigger UI state components)
-    console.log('StateManager: About to notify state change listeners');
+    // console.log('StateManager: About to notify state change listeners');
     this.notifyStateChange(oldState, newState);
 
     this.transitionInProgress = false;
@@ -282,16 +282,16 @@ export class StateManager {
    * Handle entering a new state
    */
   private enterState(state: GameState): void {
-    console.log(`StateManager: Entering state: ${state}`);
+    // console.log(`StateManager: Entering state: ${state}`);
 
     switch (state) {
       case GameState.TITLE_SCREEN:
-        console.log('StateManager: Setting up TITLE_SCREEN state');
+        // console.log('StateManager: Setting up TITLE_SCREEN state');
         this.currentMenu = MenuType.MAIN;
         this.demoTimeoutTicks = 0;
         break;
       case GameState.MAIN_MENU:
-        console.log('StateManager: Setting up MAIN_MENU state');
+        // console.log('StateManager: Setting up MAIN_MENU state');
         this.currentMenu = MenuType.MAIN;
         break;
       case GameState.GAME_COUNTDOWN:
@@ -347,8 +347,8 @@ export class StateManager {
     const overlays = StateUtils.getUIOverlays(this.currentState);
     overlays.forEach(overlay => this.activeUIOverlays.add(overlay));
 
-    console.log(`StateManager: Updating UI overlays for state ${this.currentState}`);
-    console.log(`StateManager: UI overlays:`, Array.from(this.activeUIOverlays));
+    // console.log(`StateManager: Updating UI overlays for state ${this.currentState}`);
+    // console.log(`StateManager: UI overlays:`, Array.from(this.activeUIOverlays));
 
     // Emit UI update event
     this.emitEvent({
@@ -384,7 +384,7 @@ export class StateManager {
       const newCountdownState = [CountdownState.THREE, CountdownState.TWO, CountdownState.ONE, CountdownState.GO][stateIndex];
       if (newCountdownState !== this.countdownState) {
         this.countdownState = newCountdownState;
-        console.log('Countdown:', this.countdownState === CountdownState.GO ? 'GO!' : this.countdownState.toString());
+        // console.log('Countdown:', this.countdownState === CountdownState.GO ? 'GO!' : this.countdownState.toString());
       }
     }
 
@@ -494,11 +494,11 @@ export class StateManager {
    * Notify all listeners of state change
    */
   private notifyStateChange(oldState: GameState, newState: GameState): void {
-    console.log(`StateManager: Notifying ${this.stateChangeListeners.length} state change listeners`);
+    // console.log(`StateManager: Notifying ${this.stateChangeListeners.length} state change listeners`);
 
     this.stateChangeListeners.forEach((listener, index) => {
       try {
-        console.log(`StateManager: Calling state change listener ${index}`);
+        // console.log(`StateManager: Calling state change listener ${index}`);
         listener.onStateChange(oldState, newState);
       } catch (error) {
         console.error(`Error in state change listener ${index}:`, error);
@@ -516,7 +516,7 @@ export class StateManager {
    * Emit an event to all listeners
    */
   private emitEvent(event: StateManagerEvent): void {
-    console.log(`StateManager: Emitting event ${event.type} to ${this.eventListeners.length} listeners`);
+    // console.log(`StateManager: Emitting event ${event.type} to ${this.eventListeners.length} listeners`);
 
     this.eventListeners.forEach((listener, index) => {
       try {
@@ -535,7 +535,7 @@ export class StateManager {
       return;
     }
 
-    console.log(`StateManager: Handling music transition from ${oldState} to ${newState}`);
+    // console.log(`StateManager: Handling music transition from ${oldState} to ${newState}`);
 
     switch (newState) {
       case GameState.TITLE_SCREEN:
@@ -601,7 +601,7 @@ export class StateManager {
   }
 
   public addEventListener(listener: (event: StateManagerEvent) => void): void {
-    console.log(`StateManager: Adding event listener (total will be ${this.eventListeners.length + 1})`);
+    // console.log(`StateManager: Adding event listener (total will be ${this.eventListeners.length + 1})`);
     this.eventListeners.push(listener);
   }
 
@@ -615,7 +615,7 @@ export class StateManager {
   // Game mode methods
   public setGameMode(gameMode: GameMode): void {
     this.currentGameMode = gameMode;
-    console.log(`StateManager: Game mode set to ${gameMode}`);
+    // console.log(`StateManager: Game mode set to ${gameMode}`);
   }
 
   public getCurrentGameMode(): GameMode {

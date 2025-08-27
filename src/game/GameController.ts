@@ -213,26 +213,26 @@ export class GameController {
 
   // Handle cursor movement
   private handleCursorMove(dx: number, dy: number): void {
-    debugLog('GameController', `handleCursorMove: dx=${dx}, dy=${dy}, boardState=${this.board.state}`);
+    // debugLog('GameController', `handleCursorMove: dx=${dx}, dy=${dy}, boardState=${this.board.state}`);
     
     if (this.board.state !== BoardState.RUNNING) {
-      debugLog('GameController', `Board not running (state=${this.board.state}), skipping move`);
+      // debugLog('GameController', `Board not running (state=${this.board.state}), skipping move`);
       return;
     }
     if (this.board.hasActiveBlocks()) {
-      debugLog('GameController', 'Board has active blocks, skipping move');
+      // debugLog('GameController', 'Board has active blocks, skipping move');
       return; // Don't move during animations
     }
     if (this.cursor.isMoving()) {
-      debugLog('GameController', 'Cursor is moving, skipping move');
+      // debugLog('GameController', 'Cursor is moving, skipping move');
       return; // Wait for smooth movement to finish
     }
     
     const moved = this.cursor.move(dx, dy);
-    debugLog('GameController', `Cursor move result: ${moved}`);
+    // debugLog('GameController', `Cursor move result: ${moved}`);
     if (moved) {
       this.totalMoves++;
-      debugLog('GameController', `Total moves: ${this.totalMoves}`);
+      // debugLog('GameController', `Total moves: ${this.totalMoves}`);
       
       // Play cursor move sound
       if (this.audioSystem) {
@@ -282,7 +282,7 @@ export class GameController {
       randomType
     );
     
-    console.log(`Garbage queued: ${fullWidth ? 'FULL-WIDTH' : randomSize + '-wide'} ${randomType}`);
+    // console.log(`Garbage queued: ${fullWidth ? 'FULL-WIDTH' : randomSize + '-wide'} ${randomType}`);
   }
 
   // Handle pause input (when game is paused)
@@ -462,10 +462,10 @@ export class GameController {
   /**
    * Set demo mode (for AI control)
    */
-  public setDemoMode(enabled: boolean): void {
+  public setDemoMode(_enabled: boolean): void {
     // TODO: Implement demo mode control
     // This would disable user input and allow AI to control the cursor
-    console.log(`GameController: Demo mode ${enabled ? 'enabled' : 'disabled'}`);
+    // console.log(`GameController: Demo mode ${_enabled ? 'enabled' : 'disabled'}`);
   }
   
   /**
@@ -486,8 +486,8 @@ export class GameController {
   /**
    * Game mode ended callback
    */
-  public onGameModeEnded(data: Record<string, unknown>): void {
-    console.log('GameController: Game mode ended', data);
+  public onGameModeEnded(_data: Record<string, unknown>): void {
+    // console.log('GameController: Game mode ended', _data);
     // TODO: Handle game mode end events
     // This could trigger state transitions or UI updates
   }
