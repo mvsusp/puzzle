@@ -17,9 +17,9 @@ export class AudioEngine {
   private sfxGain: GainNode | null = null;
   
   private settings: AudioSettings = {
-    masterVolume: 0.8,
-    musicVolume: 0.7,
-    sfxVolume: 0.8,
+    masterVolume: 0,
+    musicVolume: 0,
+    sfxVolume: 0,
     enabled: true
   };
   
