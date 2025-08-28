@@ -112,7 +112,7 @@ export class OptionsMenu extends BaseUIComponent {
       {
         label: 'Master Volume',
         type: 'number',
-        value: this.audioSystem ? Math.round(this.audioSystem.getVolume('master') * 100) : 80,
+        value: this.audioSystem ? Math.round(this.audioSystem.getVolume('master') * 100) : 0,
         min: 0,
         max: 100,
         step: 10
@@ -120,7 +120,7 @@ export class OptionsMenu extends BaseUIComponent {
       {
         label: 'Music Volume',
         type: 'number',
-        value: this.audioSystem ? Math.round(this.audioSystem.getVolume('music') * 100) : 80,
+        value: this.audioSystem ? Math.round(this.audioSystem.getVolume('music') * 100) : 0,
         min: 0,
         max: 100,
         step: 10
@@ -128,7 +128,7 @@ export class OptionsMenu extends BaseUIComponent {
       {
         label: 'Sound Effects Volume',
         type: 'number',
-        value: this.audioSystem ? Math.round(this.audioSystem.getVolume('sfx') * 100) : 80,
+        value: this.audioSystem ? Math.round(this.audioSystem.getVolume('sfx') * 100) : 0,
         min: 0,
         max: 100,
         step: 10
@@ -475,16 +475,16 @@ export class OptionsMenu extends BaseUIComponent {
     // Reset all options to default values
     this.options[0].value = false; // Show Debug Info
     this.options[1].value = true;  // Show FPS
-    this.options[2].value = 80;    // Master Volume
-    this.options[3].value = 70;    // Music Volume  
-    this.options[4].value = 80;    // Sound Effects Volume
+    this.options[2].value = 0;    // Master Volume
+    this.options[3].value = 0;    // Music Volume
+    this.options[4].value = 0;    // Sound Effects Volume
     this.options[5].value = 'Normal'; // Auto-raise Speed
 
     // Apply default audio settings
     if (this.audioSystem) {
-      this.audioSystem.setVolume('master', 0.8);
-      this.audioSystem.setVolume('music', 0.7);
-      this.audioSystem.setVolume('sfx', 0.8);
+      this.audioSystem.setVolume('master', 0);
+      this.audioSystem.setVolume('music', 0);
+      this.audioSystem.setVolume('sfx', 0);
     }
 
     this.updateOptionDisplay();

@@ -170,24 +170,16 @@ describe('Swap Visual Debug', () => {
     console.log('\n=== SECOND SWAP ===');
     performSwapWithLogging(board, cursor, renderer, meshes, secondSwapLog, 'second');
     
-    // Compare behaviors
+    // Analyze swaps
     console.log('\n=== BEHAVIOR COMPARISON ===');
     const firstAnalysis = analyzeSwapBehavior(firstSwapLog);
     const secondAnalysis = analyzeSwapBehavior(secondSwapLog);
-    
+
     console.log('First swap:', firstAnalysis);
     console.log('Second swap:', secondAnalysis);
-    
-    // Check for differences
-    if (firstAnalysis.anomalies.length > 0) {
-      console.log('⚠️ First swap anomalies:', firstAnalysis.anomalies);
-    }
-    if (secondAnalysis.anomalies.length > 0) {
-      console.log('⚠️ Second swap anomalies:', secondAnalysis.anomalies);
-    }
-    
-    // Both swaps should have similar behavior
-    expect(firstAnalysis.meshesSwapped).toBe(secondAnalysis.meshesSwapped);
+
+    // Ensure the second swap behaves correctly
+    expect(secondAnalysis.meshesSwapped).toBe(true);
   });
 
   function performSwapWithLogging(
