@@ -50,6 +50,11 @@ coverage/
 *.tmp
 *.temp
 
+# Local artifacts and reports (do not publish)
+test-artifacts/
+test-results/
+.gemini-clipboard/
+
 # Game assets (will be added later)
 public/assets/sprites/
 public/assets/audio/

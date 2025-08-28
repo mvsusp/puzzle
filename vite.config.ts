@@ -2,6 +2,9 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
+  // Base path for GitHub Pages project site: https://<user>.github.io/puzzle/
+  // Ensures built asset URLs resolve correctly under "/puzzle/".
+  base: '/puzzle/',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),

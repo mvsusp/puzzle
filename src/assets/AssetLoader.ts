@@ -22,7 +22,7 @@ export class AssetLoader {
     this.blockTextureManager = new BlockTextureManager();
     
     // Set up texture loader defaults
-    this.textureLoader.setPath('/assets/sprites/');
+    this.textureLoader.setPath(`${import.meta.env.BASE_URL}assets/sprites/`);
   }
   
   public setProgressCallback(callback: (progress: LoadingProgress) => void): void {

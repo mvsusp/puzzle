@@ -64,75 +64,75 @@ export class SoundEffectManager {
   private initializeSfxDefinitions(): void {
     // UI sounds
     this.sfxDefinitions.set('cursor', {
-      url: '/assets/audio/sfx/cursor.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/cursor.wav`,
       volume: 0.6,
       priority: 1
     });
     
     this.sfxDefinitions.set('swap', {
-      url: '/assets/audio/sfx/swap.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/swap.wav`,
       volume: 0.8,
       priority: 2
     });
     
     this.sfxDefinitions.set('countdown', {
-      url: '/assets/audio/sfx/countdown.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/countdown.wav`,
       volume: 0.9,
       priority: 10
     });
     
     this.sfxDefinitions.set('go', {
-      url: '/assets/audio/sfx/go.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/go.wav`,
       volume: 0.9,
       priority: 10
     });
     
     this.sfxDefinitions.set('pause', {
-      url: '/assets/audio/sfx/pause.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/pause.wav`,
       volume: 0.7,
       priority: 8
     });
 
     // Game sounds
     this.sfxDefinitions.set('chain', {
-      url: '/assets/audio/sfx/chain.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/chain.wav`,
       volume: 0.8,
       priority: 6
     });
     
     this.sfxDefinitions.set('combo', {
-      url: '/assets/audio/sfx/combo.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/combo.wav`,
       volume: 0.8,
       priority: 6
     });
     
     this.sfxDefinitions.set('thump', {
-      url: '/assets/audio/sfx/thump.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/thump.wav`,
       volume: 0.7,
       priority: 3,
       maxConcurrent: 3
     });
     
     this.sfxDefinitions.set('bigthump', {
-      url: '/assets/audio/sfx/bigthump.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/bigthump.wav`,
       volume: 0.8,
       priority: 5
     });
     
     this.sfxDefinitions.set('fanfare1', {
-      url: '/assets/audio/sfx/fanfare1.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/fanfare1.wav`,
       volume: 0.9,
       priority: 9
     });
     
     this.sfxDefinitions.set('fanfare2', {
-      url: '/assets/audio/sfx/fanfare2.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/fanfare2.wav`,
       volume: 0.9,
       priority: 9
     });
     
     this.sfxDefinitions.set('fanfare3', {
-      url: '/assets/audio/sfx/fanfare3.wav',
+      url: `${import.meta.env.BASE_URL}assets/audio/sfx/fanfare3.wav`,
       volume: 0.9,
       priority: 9
     });
@@ -142,7 +142,7 @@ export class SoundEffectManager {
       for (let combo = 1; combo <= 10; combo++) {
         const sfxType = `chain_${chain}x${combo}` as SfxType;
         this.sfxDefinitions.set(sfxType, {
-          url: `/assets/audio/sfx/${chain}x${combo}.wav`,
+          url: `${import.meta.env.BASE_URL}assets/audio/sfx/${chain}x${combo}.wav`,
           volume: 0.8,
           priority: 7,
           maxConcurrent: 2

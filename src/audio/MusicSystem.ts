@@ -35,19 +35,19 @@ export class MusicSystem {
   
   private trackDefinitions: Map<MusicTrack, MusicTrackInfo> = new Map([
     ['title_intro', {
-      url: '/assets/audio/music/panelpop_intro.ogg',
+      url: `${import.meta.env.BASE_URL}assets/audio/music/panelpop_intro.ogg`,
       loop: false
     }],
     ['title_loop', {
-      url: '/assets/audio/music/panelpop_loop.ogg',
+      url: `${import.meta.env.BASE_URL}assets/audio/music/panelpop_loop.ogg`,
       loop: true
     }],
     ['battle_normal', {
-      url: '/assets/audio/music/battle1_loop.ogg',
+      url: `${import.meta.env.BASE_URL}assets/audio/music/battle1_loop.ogg`,
       loop: true
     }],
     ['battle_panic', {
-      url: '/assets/audio/music/battle1_panic.ogg',
+      url: `${import.meta.env.BASE_URL}assets/audio/music/battle1_panic.ogg`,
       loop: true
     }]
   ]);

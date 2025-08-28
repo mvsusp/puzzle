@@ -15,7 +15,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "three": "^0.160.0"
@@ -29,6 +31,7 @@
     "@vitest/ui": "^1.0.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.0.0",
+    "gh-pages": "^6.3.0",
     "happy-dom": "^18.0.1",
     "prettier": "^3.0.0",
     "typescript": "^5.0.0",

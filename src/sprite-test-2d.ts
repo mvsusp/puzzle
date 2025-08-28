@@ -19,7 +19,7 @@ class SpriteTest2D {
     return new Promise((resolve, reject) => {
       this.spritesheet.onload = (): void => resolve();
       this.spritesheet.onerror = reject;
-      this.spritesheet.src = '/assets/sprites/sprites.png';
+      this.spritesheet.src = `${import.meta.env.BASE_URL}assets/sprites/sprites.png`;
     });
   }
 

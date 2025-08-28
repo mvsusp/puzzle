@@ -5,7 +5,7 @@ export class BlockTextureManager {
   private textureLoader: THREE.TextureLoader;
   private textureCache: Map<string, THREE.Texture> = new Map();
   private loadingPromises: Map<string, Promise<THREE.Texture>> = new Map();
-  private basePath: string = '/assets/sprites/blocks/';
+  private basePath: string = `${import.meta.env.BASE_URL}assets/sprites/blocks/`;
   
   constructor() {
     this.textureLoader = new THREE.TextureLoader();
