@@ -67,3 +67,6 @@ public/assets/fonts/
 
 # Original game reference (embedded git repo)
 original/panel-pop/
+
+# Local mirror used for history rewrites
+puzzle-mirror.git/
