@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Block } from '../game/Block';
 import { BlockState } from '../game/BlockTypes';
 import { TweenSystem, AnimationHelpers, EasingType } from './TweenSystem';
-import { BlockDimensions, VisualTimings, VisualStyle } from '../rendering/BlockConstants';
+import { BlockDimensions, VisualTimings, VisualStyle, BlockAngles } from '../rendering/BlockConstants';
 
 // Animation state tracking for blocks
 export interface BlockAnimationState {
@@ -208,7 +208,7 @@ export class BlockAnimator {
       // Restore material properties for blocks that survive the explosion
       material.opacity = 1.0;
       mesh.scale.set(1, 1, 1);
-      mesh.rotation.set(0, 0, 0);
+      mesh.rotation.set(BlockAngles.DEFAULT_TILT_X, BlockAngles.DEFAULT_TILT_Y, 0);
       if (onComplete) onComplete();
     }, fadeDelay);
   }
