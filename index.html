@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Pop - Three.js</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: monospace;
+      color: white;
+    }
+    
+    #gameCanvas {
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #333;
+    }
+    
+    #loadingScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 18px;
+    }
+    
+    #debugInfo {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 12px;
+      font-family: monospace;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/main-CPpMIez6.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/AssetLoader-Bs61u6Ma.js">
+</head>
+<body>
+  <div id="loadingScreen">
+    <div>Loading Panel Pop...</div>
+    <div id="loadingProgress">0%</div>
+  </div>
+  
+  <div id="debugInfo" style="display: none;">
+    <div><strong>PERFORMANCE</strong></div>
+    <div>FPS: <span id="fps">60</span></div>
+    <div>Frame Time: <span id="frameTime">16.67ms</span></div>
+    <div>Ticks: <span id="ticks">0</span></div>
+    
+    <div style="margin-top: 8px;"><strong>CURSOR</strong></div>
+    <div id="cursorPos">Pos:(2,5) Target:(2,5) Moving:false</div>
+    <div id="cursor">Cursor: (2,5) Target:(2,5) Moving:false</div>
+    
+    <div style="margin-top: 8px;"><strong>INPUT</strong></div>
+    <div id="inputStates">UP:□ DOWN:□ LEFT:□ RIGHT:□ SWAP:□ RAISE:□ PAUSE:□</div>
+    <div id="inputManager">Input: Queue(0) Pressed() Enabled(true)</div>
+    
+    <div style="margin-top: 8px;"><strong>GAME STATE</strong></div>
+    <div id="gameController">Controller: running Swaps:0 Raises:0 Moves:0</div>
+    <div id="boardState">State: countdown | Panic: false | Score: 0</div>
+    <div id="board">Board: countdown, Ticks: 0, Score: 0, Chain: 1</div>
+    
+    <div style="margin-top: 8px;"><strong>VISUAL EFFECTS</strong></div>
+    <div id="visualEffects">Effects: ON | Particles: 0/200 | Popups: 0/50 | Shake: OFF</div>
+    
+    <div style="margin-top: 8px;"><strong>STATE MANAGEMENT (Phase 9)</strong></div>
+    <div id="stateManager">State: loading | Previous: loading | Transitioning: false | Menu: none</div>
+    <div id="uiManager">UI: Components(none) | Overlays(none)</div>
+    
+    <div style="margin-top: 8px;"><strong>AUDIO SYSTEM (Phase 10)</strong></div>
+    <div id="audioSystem">Audio: Not Ready | Music: None | SFX: 0</div>
+    
+    <div style="margin-top: 8px; font-size: 10px; color: #888;">
+      Press F3 to toggle debug | Arrow keys to move cursor
+    </div>
+    
+    <div style="margin-top: 8px;"><strong>COMBO POINTING LOG</strong> <button onclick="window.comboDebugger?.clear()" style="font-size: 10px; margin-left: 8px;">Clear</button></div>
+    <div id="comboPointingLog" style="font-size: 10px; color: #ff0; max-height: 120px; overflow-y: auto; border: 1px solid #333; padding: 4px; background: rgba(0,0,0,0.5);"></div>
+    
+    <div style="margin-top: 8px;"><strong>INPUT DEBUG LOG</strong></div>
+    <div id="inputDebugLog" style="font-size: 10px; color: #0f0; max-height: 100px; overflow-y: auto;"></div>
+  </div>
+  
+  <canvas id="gameCanvas"></canvas>
+</body>
+</html>
