@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Block } from '../game/Block';
 import { BlockState } from '../game/BlockTypes';
 import { TweenSystem, AnimationHelpers, EasingType } from './TweenSystem';
-import { BlockDimensions } from '../rendering/BlockConstants';
+import { BlockDimensions, VisualTimings } from '../rendering/BlockConstants';
 
 // Animation state tracking for blocks
 export interface BlockAnimationState {
@@ -150,17 +150,19 @@ export class BlockAnimator {
 
     this.animationStates.set(block, animState);
 
-    const explosionTicks = block.explosionTicks || 61;
-    
-    // Create compound explosion animation
-    this.createExplosionEffect(mesh, material, explosionTicks, () => {
+    // Fade only during the rotation phase, after blink + landed
+    const fadeDuration = VisualTimings.MATCH_ROTATE_TICKS;
+    const fadeDelay = VisualTimings.MATCH_BLINK_TICKS + VisualTimings.MATCH_LANDED_TICKS;
+
+    // Create explosion fade (no scaling)
+    this.createExplosionEffect(mesh, material, fadeDuration, () => {
       animState.isExploding = false;
       // Restore material properties for blocks that survive the explosion
       material.opacity = 1.0;
       mesh.scale.set(1, 1, 1);
       mesh.rotation.set(0, 0, 0);
       if (onComplete) onComplete();
-    });
+    }, fadeDelay);
   }
 
   // Start floating bobbing animation
@@ -219,56 +221,27 @@ export class BlockAnimator {
     });
   }
 
-  // Create complex explosion effect
+  // Create explosion effect: simple fade out, no scaling or extra rotation
   private createExplosionEffect(
     mesh: THREE.Mesh,
     material: THREE.Material,
     duration: number,
-    onComplete: () => void
+    onComplete: () => void,
+    delay: number = 0
   ): void {
-    const originalScale = mesh.scale.clone();
     const originalOpacity = material.opacity;
-    const originalRotation = mesh.rotation.clone();
 
-    // Phase 1: Quick scale up (first 20% of animation)
-    const scaleUpDuration = Math.floor(duration * 0.2);
+    // Ensure mesh scale stays constant during explosion
+    mesh.scale.set(1, 1, 1);
+
     this.tweenSystem.createTween({
-      target: mesh,
-      duration: scaleUpDuration,
-      from: { scale: originalScale },
-      to: { scale: new THREE.Vector3(originalScale.x * 1.2, originalScale.y * 1.2, originalScale.z) },
-      easing: EasingType.EASE_OUT,
-      onComplete: () => {
-        // Phase 2: Scale up more and fade (remaining 80%)
-        const fadeOutDuration = duration - scaleUpDuration;
-        
-        this.tweenSystem.createTween({
-          target: mesh,
-          duration: fadeOutDuration,
-          from: { scale: new THREE.Vector3(originalScale.x * 1.2, originalScale.y * 1.2, originalScale.z) },
-          to: { scale: new THREE.Vector3(originalScale.x * 1.8, originalScale.y * 1.8, originalScale.z) },
-          easing: EasingType.EASE_IN,
-        });
-
-        this.tweenSystem.createTween({
-          target: material,
-          duration: fadeOutDuration,
-          from: { opacity: originalOpacity },
-          to: { opacity: 0 },
-          easing: EasingType.EASE_IN,
-        });
-
-        // Keep any rotation that may have been applied on match; no extra spin here.
-        // Complete once fade/scale are done.
-        this.tweenSystem.createTween({
-          target: mesh,
-          duration: fadeOutDuration,
-          from: { rotation: originalRotation },
-          to: { rotation: originalRotation },
-          easing: EasingType.LINEAR,
-          onComplete
-        });
-      }
+      target: material,
+      duration,
+      from: { opacity: originalOpacity },
+      to: { opacity: 0 },
+      easing: EasingType.LINEAR,
+      delay,
+      onComplete,
     });
   }
 

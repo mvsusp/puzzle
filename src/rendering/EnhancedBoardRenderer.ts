@@ -8,7 +8,7 @@ import { AnimationManager } from '../animation/AnimationManager';
 import { AssetLoader } from '../assets/AssetLoader';
 import { PixelPerfectSpriteRenderer } from './PixelPerfectSpriteRenderer';
 import { VisualEffectsManager, MatchEventData, GarbageEventData } from '../effects/VisualEffectsManager';
-import { BlockDimensions, BoardDimensions, getBlockPosition, getCursorDimensions } from './BlockConstants';
+import { BlockDimensions, BoardDimensions, VisualTimings, getBlockPosition, getCursorDimensions } from './BlockConstants';
 import { BlockTextureManager } from './BlockTextureManager';
 
 export class EnhancedBoardRenderer {
@@ -365,7 +365,19 @@ export class EnhancedBoardRenderer {
     mesh.visible = true;
 
     const colorName = BlockColor[block.color];
-    const stateName = block.state.toUpperCase();
+
+    // Determine which visual state to display
+    // Show EXPLODING (blink) briefly, then switch to MATCHED (landed)
+    // Controlled by VisualTimings.MATCH_BLINK_TICKS
+    const BLINK_TICKS = VisualTimings.MATCH_BLINK_TICKS;
+    let displayState: BlockState = block.state;
+    if (block.state === BlockState.EXPLODING) {
+      displayState = (block.explosionTimer <= BLINK_TICKS)
+        ? BlockState.EXPLODING // blink texture
+        : BlockState.MATCHED;  // landed texture
+    }
+
+    const stateName = displayState.toUpperCase();
     const key = `${colorName}-${stateName}`;
 
     // Update material based on block color and state
@@ -436,14 +448,7 @@ export class EnhancedBoardRenderer {
     // Apply state-based visual effects (non-animated fallbacks)
     this.applyBlockStateFallbacks(mesh, block, tile);
 
-    // Ensure match rotation is applied to the correct mesh after registration
-    if ((block.state === BlockState.MATCHED || block.state === BlockState.EXPLODING) && !mesh.userData.matchRotated) {
-      // Access BlockAnimator via AnimationManager
-      const blockAnimator = (this.animationManager as any)['blockAnimator'];
-      if (blockAnimator && typeof blockAnimator.startMatchRotation === 'function') {
-        blockAnimator.startMatchRotation(block, mesh);
-      }
-    }
+    // Match rotation is now triggered on state change in AnimationManager
   }
 
   // Apply visual effects for blocks not handled by animations

@@ -65,3 +65,13 @@ export const AnimationScaling = {
   // Average scale for effects: ~3.6
   EFFECT_SCALE: 3.6,
 } as const;
+
+// Visual/timing constants used by renderers/animations
+export const VisualTimings = {
+  // How long a matched block shows the blink sprite before switching to landed
+  MATCH_BLINK_TICKS: 5,
+  // How long to show landed before rotating away
+  MATCH_LANDED_TICKS: 45,
+  // Duration of the 90° Y rotation before disappearance
+  MATCH_ROTATE_TICKS: 12,
+} as const;

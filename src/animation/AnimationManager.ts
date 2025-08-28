@@ -3,6 +3,7 @@ import { Board } from '../game/Board';
 import { Block } from '../game/Block';
 import { Cursor } from '../game/Cursor';
 import { BlockState } from '../game/BlockTypes';
+import { VisualTimings } from '../rendering/BlockConstants';
 import { TweenSystem } from './TweenSystem';
 import { BlockAnimator } from './BlockAnimator';
 import { StackAnimator } from './StackAnimator';
@@ -219,7 +220,7 @@ export class AnimationManager {
 
       case BlockState.EXPLODING:
         if (oldState !== BlockState.EXPLODING) {
-          // Start explosion visuals; rotation will be ensured post-registration in renderer
+          // Start explosion visuals
           this.blockAnimator.startExplosionAnimation(block, mesh, material);
         }
         break;
@@ -255,6 +256,19 @@ export class AnimationManager {
           this.blockAnimator.startFloatAnimation(block, mesh);
         }
         break;
+
+      case BlockState.EXPLODING: {
+        // Trigger the 90° Y rotation at the end of the landed phase
+        const rotateStart = VisualTimings.MATCH_BLINK_TICKS + VisualTimings.MATCH_LANDED_TICKS;
+        const hasAnim = this.blockAnimator.getAnimationState(block)?.isExploding;
+        if (hasAnim && block.explosionTimer >= rotateStart) {
+          // Start rotation once
+          if (!(mesh.userData && mesh.userData.matchRotated)) {
+            this.blockAnimator.startMatchRotation(block, mesh, VisualTimings.MATCH_ROTATE_TICKS);
+          }
+        }
+        break;
+      }
     }
   }
 
