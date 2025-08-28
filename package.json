@@ -20,7 +20,8 @@
     "deploy": "node scripts/deploy.js"
   },
   "dependencies": {
-    "three": "^0.160.0"
+    "three": "^0.160.0",
+    "gh-pages": "^6.3.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
@@ -31,7 +32,6 @@
     "@vitest/ui": "^1.0.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.0.0",
-    "gh-pages": "^6.3.0",
     "happy-dom": "^18.0.1",
     "prettier": "^3.0.0",
     "typescript": "^5.0.0",
