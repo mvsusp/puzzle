@@ -30,6 +30,9 @@ export class AnimationManager {
   private lastBlockStates = new Map<Block, BlockState>();
   private blockMeshMap = new Map<Block, THREE.Mesh>();
   private blockMaterialMap = new Map<Block, THREE.Material>();
+  private pendingMatchRotations = new Map<Block, number>(); // ticks until flip
+  private flipStarted = new Set<Block>(); // ensure flip runs once per block regardless of mesh
+  private readonly ROTATE_SAFETY_TICKS = 4; // start earlier to guarantee completion for earliest block
 
   constructor(board: Board, config?: Partial<AnimationConfig>) {
     this.board = board;
@@ -67,9 +70,38 @@ export class AnimationManager {
 
   // Register block mesh for animation tracking
   public registerBlockMesh(block: Block, mesh: THREE.Mesh, material: THREE.Material): void {
+    // Stop any stale tweens targeting this mesh (e.g., swap/fall from prior occupant)
+    this.tweenSystem.stopTweensForTarget(mesh);
+
     this.blockMeshMap.set(block, mesh);
     this.blockMaterialMap.set(block, material);
     this.lastBlockStates.set(block, block.state);
+
+    // If the block is already in EXPLODING when (re)registered (e.g., after a swap/move),
+    // ensure its 90° flip is scheduled or started based on current explosionTimer.
+    if (block.state === BlockState.EXPLODING) {
+      // Simultaneous flip: use a fixed timer threshold relative to explosionTimer
+      const rotateTimerThreshold = Math.max(0, (VisualTimings.MATCH_BLINK_TICKS + VisualTimings.MATCH_LANDED_TICKS) - this.ROTATE_SAFETY_TICKS);
+      const ticksRemaining = Math.max(0, rotateTimerThreshold - (block.explosionTimer || 0));
+
+      // If rotation already started on this mesh, skip
+      const alreadyRotated = !!(mesh.userData && mesh.userData.matchRotated) || this.flipStarted.has(block);
+      if (!alreadyRotated) {
+        if (ticksRemaining === 0) {
+          // Start now on the current mesh, adjust duration to fit remaining time
+          const remaining = Math.max(0, (block.explosionTicks || 0) - (block.explosionTimer || 0));
+          const duration = Math.max(4, Math.min(VisualTimings.MATCH_ROTATE_TICKS, remaining - 1));
+          this.blockAnimator.startMatchRotation(block, mesh, duration);
+          this.flipStarted.add(block);
+        } else {
+          // Schedule, but keep the minimum remaining if something is already pending
+          const existing = this.pendingMatchRotations.get(block);
+          if (existing === undefined || existing > ticksRemaining) {
+            this.pendingMatchRotations.set(block, ticksRemaining);
+          }
+        }
+      }
+    }
   }
 
   // Unregister block mesh
@@ -87,6 +119,9 @@ export class AnimationManager {
     this.blockAnimator.tick();
     this.stackAnimator.tick();
     this.cursorAnimator?.tick();
+
+    // Process pending match rotations so we always use the current mesh
+    this.updatePendingMatchRotations();
 
     // Check for block state changes and trigger animations
     if (this.config.enableBlockAnimations) {
@@ -222,6 +257,10 @@ export class AnimationManager {
         if (oldState !== BlockState.EXPLODING) {
           // Start explosion visuals
           this.blockAnimator.startExplosionAnimation(block, mesh, material);
+          // Schedule the 90° Y rotation simultaneously for the cohort using explosionTimer threshold
+          const rotateTimerThreshold = Math.max(0, (VisualTimings.MATCH_BLINK_TICKS + VisualTimings.MATCH_LANDED_TICKS) - this.ROTATE_SAFETY_TICKS);
+          const ticksRemaining = Math.max(0, rotateTimerThreshold - (block.explosionTimer || 0));
+          this.pendingMatchRotations.set(block, ticksRemaining);
         }
         break;
 
@@ -257,18 +296,9 @@ export class AnimationManager {
         }
         break;
 
-      case BlockState.EXPLODING: {
-        // Trigger the 90° Y rotation at the end of the landed phase
-        const rotateStart = VisualTimings.MATCH_BLINK_TICKS + VisualTimings.MATCH_LANDED_TICKS;
-        const hasAnim = this.blockAnimator.getAnimationState(block)?.isExploding;
-        if (hasAnim && block.explosionTimer >= rotateStart) {
-          // Start rotation once
-          if (!(mesh.userData && mesh.userData.matchRotated)) {
-            this.blockAnimator.startMatchRotation(block, mesh, VisualTimings.MATCH_ROTATE_TICKS);
-          }
-        }
+      case BlockState.EXPLODING:
+        // Rotation scheduled on state change; countdown handled separately
         break;
-      }
     }
   }
 
@@ -276,6 +306,42 @@ export class AnimationManager {
   private updateStackAnimations(): void {
     // The stack animator handles its own updates in tick()
     // Additional stack-related visual effects could be added here
+  }
+
+  // Countdown and trigger pending match rotations
+  private updatePendingMatchRotations(): void {
+    if (this.pendingMatchRotations.size === 0) return;
+
+    const toStart: Block[] = [];
+    this.pendingMatchRotations.forEach((ticksLeft, block) => {
+      const next = ticksLeft - 1;
+      // Clamp at 0 and keep until we successfully start
+      const clamped = Math.max(0, next);
+      this.pendingMatchRotations.set(block, clamped);
+      if (clamped === 0) toStart.push(block);
+    });
+
+    for (const block of toStart) {
+      const mesh = this.blockMeshMap.get(block);
+      if (!mesh) continue; // Not registered yet; retry next tick while value stays 0
+      // Ensure we haven't already rotated this mesh
+      if (!(mesh.userData && mesh.userData.matchRotated) && !this.flipStarted.has(block)) {
+        const remaining = Math.max(0, (block.explosionTicks || 0) - (block.explosionTimer || 0));
+        const duration = Math.max(4, Math.min(VisualTimings.MATCH_ROTATE_TICKS, remaining - 1));
+        this.blockAnimator.startMatchRotation(block, mesh, duration);
+        this.pendingMatchRotations.delete(block);
+        this.flipStarted.add(block);
+      }
+    }
+  }
+
+  // Public helpers for renderer fallbacks
+  public hasFlipStarted(block: Block): boolean {
+    return this.flipStarted.has(block);
+  }
+
+  public markFlipStarted(block: Block): void {
+    this.flipStarted.add(block);
   }
 
   // Get comprehensive debug information

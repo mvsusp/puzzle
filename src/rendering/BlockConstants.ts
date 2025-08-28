@@ -6,6 +6,8 @@ export const BlockDimensions = {
   // Individual block dimensions
   BLOCK_WIDTH: 108,
   BLOCK_HEIGHT: 103,
+  // Depth for 3D effect (in pixels)
+  BLOCK_DEPTH: 16,
   
   // Gap between blocks
   BLOCK_GAP: 10,

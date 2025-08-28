@@ -28,8 +28,12 @@ export class EnhancedBoardRenderer {
   private gridLines: THREE.Line[] = [];
   
   // Block rendering
-  private blockGeometry: THREE.PlaneGeometry;
+  private blockGeometry: THREE.BoxGeometry;
+  private blockEdgesGeometry: THREE.EdgesGeometry;
+  private rimMaterial: THREE.LineBasicMaterial;
   private blockMaterials: Map<string, THREE.MeshLambertMaterial> = new Map();
+  // Solid side materials (tinted) per block color
+  private sideMaterials: Map<string, THREE.MeshLambertMaterial> = new Map();
   private blockMeshes: THREE.Mesh[][] = [];
   
   // Garbage block rendering
@@ -58,6 +62,8 @@ export class EnhancedBoardRenderer {
     this.blockTextureManager = assetLoader.getBlockTextureManager();
     this.boardGroup = new THREE.Group();
     this.boardGroup.name = 'EnhancedBoardGroup';
+    // Add a subtle tilt so 3D depth is visible with an orthographic camera
+    this.boardGroup.rotation.x = THREE.MathUtils.degToRad(-6);
     
     // Initialize animation manager
     this.animationManager = new AnimationManager(board, {
@@ -71,11 +77,19 @@ export class EnhancedBoardRenderer {
       this.animationManager.setCursor(cursor);
     }
     
-    // Create reusable block geometry with new dimensions
-    this.blockGeometry = new THREE.PlaneGeometry(
-      BlockDimensions.BLOCK_WIDTH, 
-      BlockDimensions.BLOCK_HEIGHT
+    // Create reusable block geometry with new dimensions and depth
+    this.blockGeometry = new THREE.BoxGeometry(
+      BlockDimensions.BLOCK_WIDTH,
+      BlockDimensions.BLOCK_HEIGHT,
+      BlockDimensions.BLOCK_DEPTH
     );
+    // Shared edges geometry and rim material for subtle edge highlight
+    this.blockEdgesGeometry = new THREE.EdgesGeometry(this.blockGeometry);
+    this.rimMaterial = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.25,
+    });
     
     // Initialize rendering components synchronously first
     this.initializeBlockMaterials();
@@ -146,6 +160,21 @@ export class EnhancedBoardRenderer {
           this.blockMaterials.set(key, material);
         }
       }
+
+      // Ensure we have a cached solid side material for this color
+      const sideKey = `SIDE-${BlockColor[color]}`;
+      if (!this.sideMaterials.get(sideKey)) {
+        const baseColor = new THREE.Color(BLOCK_COLORS[color]);
+        const sideColor = baseColor.clone().multiplyScalar(0.6); // darker tint for sides
+        const sideMaterial = new THREE.MeshLambertMaterial({
+          color: sideColor,
+          transparent: true,
+          opacity: 1.0,
+          emissive: 0x000000,
+          side: THREE.FrontSide,
+        });
+        this.sideMaterials.set(sideKey, sideMaterial);
+      }
     }
   }
 
@@ -188,13 +217,16 @@ export class EnhancedBoardRenderer {
         
         // Use new positioning system with gaps
         const pos = getBlockPosition(row, col);
-        mesh.position.set(
-          pos.x,
-          pos.y,
-          1 // Blocks in front of grid
-        );
+        // Offset Z so the front face remains at z=1 (original plane position)
+        const zCenter = 1 - (BlockDimensions.BLOCK_DEPTH / 2);
+        mesh.position.set(pos.x, pos.y, zCenter);
         mesh.name = `Block_${row}_${col}`;
         mesh.visible = false; // Start hidden
+        // Add rim/edge highlight as child so it follows animations/rotations
+        const rim = new THREE.LineSegments(this.blockEdgesGeometry, this.rimMaterial);
+        rim.name = `BlockRim_${row}_${col}`;
+        rim.scale.set(1.001, 1.001, 1.001); // Slightly larger to avoid z-fighting
+        mesh.add(rim);
         
         this.blockMeshes[row][col] = mesh;
         this.boardGroup.add(mesh);
@@ -383,7 +415,27 @@ export class EnhancedBoardRenderer {
     // Update material based on block color and state
     const material = this.blockMaterials.get(key);
     if (material) {
-      mesh.material = material;
+      // Build a per-face material set so sides are solid-colored
+      const sideKey = `SIDE-${colorName}`;
+      let sideMaterial = this.sideMaterials.get(sideKey);
+      if (!sideMaterial) {
+        const baseColor = new THREE.Color(BLOCK_COLORS[block.color]);
+        const sideColor = baseColor.clone().multiplyScalar(0.6);
+        sideMaterial = new THREE.MeshLambertMaterial({
+          color: sideColor,
+          transparent: true,
+          opacity: 1.0,
+          emissive: 0x000000,
+          side: THREE.FrontSide,
+        });
+        this.sideMaterials.set(sideKey, sideMaterial);
+      }
+
+      // BoxGeometry material order: +X, -X, +Y, -Y, +Z (front), -Z (back)
+      const materialArray: THREE.Material[] = [
+        sideMaterial, sideMaterial, sideMaterial, sideMaterial, material, material
+      ];
+      mesh.material = materialArray;
       
       // Register with animation manager if not already registered
       if (mesh.userData.registeredBlock !== block) {
@@ -401,7 +453,9 @@ export class EnhancedBoardRenderer {
       // Fallback for unknown material combinations
       const fallbackMaterial = this.blockMaterials.get(`${colorName}-NORMAL`);
       if (fallbackMaterial) {
-        mesh.material = fallbackMaterial;
+        const sideKey = `SIDE-${colorName}`;
+        const sideMaterial = this.sideMaterials.get(sideKey) || new THREE.MeshLambertMaterial({ color: 0x333333 });
+        mesh.material = [sideMaterial, sideMaterial, sideMaterial, sideMaterial, fallbackMaterial, fallbackMaterial];
       }
     }
     
@@ -446,6 +500,26 @@ export class EnhancedBoardRenderer {
     }
     
     // Apply state-based visual effects (non-animated fallbacks)
+    // Hard guarantee: if a block is in EXPLODING and crossed rotate threshold but missed scheduling,
+    // trigger the 90° Y flip here against the current mesh.
+    if (block.state === BlockState.EXPLODING) {
+      const ROTATE_SAFETY_TICKS = 4;
+      const rotateStart = Math.max(0, (VisualTimings.MATCH_BLINK_TICKS + VisualTimings.MATCH_LANDED_TICKS) - ROTATE_SAFETY_TICKS);
+      const alreadyRotated = !!(mesh.userData && mesh.userData.matchRotated) || this.animationManager.hasFlipStarted(block);
+      if (!alreadyRotated && block.explosionTimer >= rotateStart) {
+        // Access the blockAnimator via the known API on AnimationManager
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - internal accessor for fallback guarantee
+        const blockAnimator = this.animationManager['blockAnimator'] as { startMatchRotation: (b: Block, m: THREE.Mesh, d: number) => void } | undefined;
+        if (blockAnimator) {
+          const remaining = Math.max(0, (block.explosionTicks || 0) - (block.explosionTimer || 0));
+          const duration = Math.max(4, Math.min(VisualTimings.MATCH_ROTATE_TICKS, remaining - 1));
+          blockAnimator.startMatchRotation(block, mesh, duration);
+          this.animationManager.markFlipStarted(block);
+        }
+      }
+    }
+
     this.applyBlockStateFallbacks(mesh, block, tile);
 
     // Match rotation is now triggered on state change in AnimationManager
@@ -453,32 +527,45 @@ export class EnhancedBoardRenderer {
 
   // Apply visual effects for blocks not handled by animations
   private applyBlockStateFallbacks(mesh: THREE.Mesh, block: Block, tile: Tile): void {
-    const material = mesh.material as THREE.MeshLambertMaterial;
-    
     // Only apply fallbacks if not being animated
     if (this.isBlockAnimating(block)) return;
-    
+
+    // Collect materials (handle both single and per-face arrays)
+    const materials: THREE.MeshLambertMaterial[] = Array.isArray(mesh.material)
+      ? (mesh.material as THREE.MeshLambertMaterial[])
+      : [mesh.material as THREE.MeshLambertMaterial];
+    if (!materials || materials.length === 0) return;
+
     // Reset transform for non-animated blocks
     mesh.scale.set(1, 1, 1);
     // Ensure Y rotation is reset so previously matched tiles don't stay edge-on invisible
     mesh.rotation.set(0, 0, 0);
-    material.opacity = 1.0;
-    
-    // Chain indicator
+
+    // Reset opacity on all materials
+    materials.forEach(mat => { if (mat) mat.opacity = 1.0; });
+
+    // Chain indicator (slightly increase opacity)
     if (tile.chain) {
-      material.opacity = Math.min(material.opacity + 0.2, 1.0);
+      materials.forEach(mat => { if (mat) mat.opacity = Math.min((mat.opacity ?? 1.0) + 0.2, 1.0); });
     }
-    
-    // Warning indicator for top rows
+
+    // Warning indicator for top rows (emissive blink)
+    const applyEmissive = (hex: number): void => {
+      materials.forEach((mat: THREE.MeshLambertMaterial) => {
+        if (mat && mat.emissive) {
+          mat.emissive.setHex(hex);
+        }
+      });
+    };
     if (mesh.position.y > EnhancedBoardRenderer.BOARD_PIXEL_HEIGHT * 0.7) {
       const warningBlink = Math.sin(this.blinkTimer * 0.5);
       if (warningBlink > 0) {
-        material.emissive.setHex(0x440000); // Red warning glow
+        applyEmissive(0x440000); // Red warning glow
       } else {
-        material.emissive.setHex(0x000000);
+        applyEmissive(0x000000);
       }
     } else {
-      material.emissive.setHex(0x000000);
+      applyEmissive(0x000000);
     }
   }
 
@@ -731,6 +818,7 @@ export class EnhancedBoardRenderer {
     
     // Dispose of geometries
     this.blockGeometry.dispose();
+    this.blockEdgesGeometry.dispose();
     if (this.cursorMesh?.geometry) {
       this.cursorMesh.geometry.dispose();
     }
@@ -738,6 +826,9 @@ export class EnhancedBoardRenderer {
     // Dispose of materials
     this.blockMaterials.forEach(material => material.dispose());
     this.blockMaterials.clear();
+
+    this.sideMaterials.forEach(material => material.dispose());
+    this.sideMaterials.clear();
     
     this.garbageMaterials.forEach(material => material.dispose());
     this.garbageMaterials.clear();
@@ -745,6 +836,7 @@ export class EnhancedBoardRenderer {
     if (this.cursorMaterial) {
       this.cursorMaterial.dispose();
     }
+    this.rimMaterial.dispose();
     
     // Remove all children from board group
     while (this.boardGroup.children.length > 0) {

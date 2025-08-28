@@ -28,18 +28,63 @@ export class BlockAnimator {
     this.tileSizeY = BlockDimensions.TILE_SIZE_Y;
   }
 
-  // Trigger a 90° Y-axis rotation when a match occurs.
+  // Trigger a 90° Y-axis rotation when a match occurs, with a 3D flair.
+  // Adds a temporary X tilt and Z “thickness pop” to make depth read clearly.
   // Idempotent per-mesh: uses mesh.userData.matchRotated to avoid duplicates.
-  public startMatchRotation(_block: Block, mesh: THREE.Mesh, duration: number = 12): void {
+  public startMatchRotation(_block: Block, mesh: THREE.Mesh, duration: number = 12, delay: number = 0): void {
     if (mesh.userData && mesh.userData.matchRotated) return;
     if (mesh.userData) mesh.userData.matchRotated = true; else mesh.userData = { matchRotated: true };
 
     const originalRotation = mesh.rotation.clone();
+    const originalScale = mesh.scale.clone();
+    const originalZ = mesh.position.z;
+    const tiltMax = THREE.MathUtils.degToRad(15); // show top face a bit
+    const zPop = 4; // subtle forward pop (orthographic-safe)
+
     this.tweenSystem.createTween({
       target: mesh,
       duration,
       from: { rotation: originalRotation },
       to: { rotation: new THREE.Euler(originalRotation.x, originalRotation.y + Math.PI / 2, originalRotation.z) },
+      delay,
+      onUpdate: (progress: number) => {
+        // Add a sinusoidal X tilt: 0 -> -tiltMax -> 0
+        const tilt = -tiltMax * Math.sin(Math.PI * progress);
+        mesh.rotation.x = originalRotation.x + tilt;
+
+        // Exaggerate thickness during the flip: scale Z up then back
+        const scaleZ = 1 + 0.5 * Math.sin(Math.PI * progress);
+        mesh.scale.set(originalScale.x, originalScale.y, scaleZ);
+
+        // Subtle forward pop to catch more light
+        mesh.position.z = originalZ + zPop * Math.sin(Math.PI * progress);
+
+        // Brighten side materials if present (indices 0-3 are sides for BoxGeometry)
+        if (Array.isArray(mesh.material)) {
+          const glow = 0.25 * Math.sin(Math.PI * progress); // 0..0.25
+          for (let i = 0; i < mesh.material.length; i++) {
+            const mat = mesh.material[i] as THREE.MeshLambertMaterial;
+            if (mat && mat.emissive) {
+              if (i <= 3) {
+                mat.emissive.setRGB(glow, glow, glow);
+              } else {
+                mat.emissive.setRGB(0, 0, 0);
+              }
+            }
+          }
+        }
+      },
+      onComplete: () => {
+        // Restore defaults
+        mesh.scale.copy(originalScale);
+        mesh.position.z = originalZ;
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach((m: THREE.Material) => {
+            const mat = m as THREE.MeshLambertMaterial;
+            if (mat && mat.emissive) mat.emissive.setRGB(0, 0, 0);
+          });
+        }
+      }
     });
   }
 
