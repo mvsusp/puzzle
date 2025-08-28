@@ -77,3 +77,13 @@ export const VisualTimings = {
   // Duration of the 90° Y rotation before disappearance
   MATCH_ROTATE_TICKS: 12,
 } as const;
+
+// Visual styling constants for special states
+export const VisualStyle = {
+  // When a match happens, each block should appear 5px larger on each side
+  // This visually merges adjacent matched blocks across the 10px gap.
+  MATCH_EXPAND_PX_PER_SIDE: 5,
+  // Precomputed uniform scales to achieve +5px per side using the base geometry size
+  MATCHED_SCALE_X: (BlockDimensions.BLOCK_WIDTH + (5 * 2)) / BlockDimensions.BLOCK_WIDTH,
+  MATCHED_SCALE_Y: (BlockDimensions.BLOCK_HEIGHT + (5 * 2)) / BlockDimensions.BLOCK_HEIGHT,
+} as const;

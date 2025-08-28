@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Block } from '../game/Block';
 import { BlockState } from '../game/BlockTypes';
 import { TweenSystem, AnimationHelpers, EasingType } from './TweenSystem';
-import { BlockDimensions, VisualTimings } from '../rendering/BlockConstants';
+import { BlockDimensions, VisualTimings, VisualStyle } from '../rendering/BlockConstants';
 
 // Animation state tracking for blocks
 export interface BlockAnimationState {
@@ -195,6 +195,9 @@ export class BlockAnimator {
 
     this.animationStates.set(block, animState);
 
+    // Ensure matched visual merge: +5px per side visually (no logic impact)
+    mesh.scale.set(VisualStyle.MATCHED_SCALE_X, VisualStyle.MATCHED_SCALE_Y, 1);
+
     // Fade only during the rotation phase, after blink + landed
     const fadeDuration = VisualTimings.MATCH_ROTATE_TICKS;
     const fadeDelay = VisualTimings.MATCH_BLINK_TICKS + VisualTimings.MATCH_LANDED_TICKS;
@@ -275,9 +278,6 @@ export class BlockAnimator {
     delay: number = 0
   ): void {
     const originalOpacity = material.opacity;
-
-    // Ensure mesh scale stays constant during explosion
-    mesh.scale.set(1, 1, 1);
 
     this.tweenSystem.createTween({
       target: material,

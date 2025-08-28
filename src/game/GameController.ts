@@ -1,7 +1,7 @@
 import { Board } from './Board';
 import { Cursor } from './Cursor';
 import { InputManager, InputAction, InputEvent, InputEventType } from '../input/InputManager';
-import { BoardState } from './BlockTypes';
+import { BoardState, BlockState, TileType } from './BlockTypes';
 import { GarbageBlockType } from './GarbageBlock';
 import { debugLog } from '../debug/InputDebugger';
 import { StateManager } from '../core/StateManager';
@@ -219,14 +219,9 @@ export class GameController {
       // debugLog('GameController', `Board not running (state=${this.board.state}), skipping move`);
       return;
     }
-    if (this.board.hasActiveBlocks()) {
-      // debugLog('GameController', 'Board has active blocks, skipping move');
-      return; // Don't move during animations
-    }
-    if (this.cursor.isMoving()) {
-      // debugLog('GameController', 'Cursor is moving, skipping move');
-      return; // Wait for smooth movement to finish
-    }
+    // Allow cursor movement even while the board has active animations
+    // and while the cursor is still interpolating to its last target.
+    // This enables fluid input during matches/clears, matching original game feel.
     
     const moved = this.cursor.move(dx, dy);
     // debugLog('GameController', `Cursor move result: ${moved}`);
@@ -244,8 +239,35 @@ export class GameController {
   // Handle block swapping
   private handleSwap(): void {
     if (this.board.state !== BoardState.RUNNING) return;
-    if (this.board.hasActiveBlocks()) return; // Don't swap during animations
-    
+
+    // Allow swaps during board animations, but only if the targeted tiles
+    // are safe (not garbage and not currently locked by their own animation).
+    const { x, y } = this.cursor.getTargetPosition();
+    const leftTile = this.board.getTile(y, x);
+    const rightTile = this.board.getTile(y, x + 1);
+
+    // Validate tiles exist
+    if (!leftTile || !rightTile) return;
+
+    // Disallow swapping garbage tiles
+    if (leftTile.type === TileType.GARBAGE || rightTile.type === TileType.GARBAGE) return;
+
+    // Disallow swapping tiles whose blocks are locked by animation/explosion
+    const leftLocked = !!leftTile.block && (
+      leftTile.block.state === BlockState.EXPLODING ||
+      leftTile.block.state === BlockState.MATCHED ||
+      leftTile.block.state === BlockState.SWAPPING_LEFT ||
+      leftTile.block.state === BlockState.SWAPPING_RIGHT
+    );
+    const rightLocked = !!rightTile.block && (
+      rightTile.block.state === BlockState.EXPLODING ||
+      rightTile.block.state === BlockState.MATCHED ||
+      rightTile.block.state === BlockState.SWAPPING_LEFT ||
+      rightTile.block.state === BlockState.SWAPPING_RIGHT
+    );
+
+    if (leftLocked || rightLocked) return;
+
     const swapped = this.cursor.swap();
     if (swapped) {
       this.totalSwaps++;

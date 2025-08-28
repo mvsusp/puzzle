@@ -8,7 +8,7 @@ import { AnimationManager } from '../animation/AnimationManager';
 import { AssetLoader } from '../assets/AssetLoader';
 import { PixelPerfectSpriteRenderer } from './PixelPerfectSpriteRenderer';
 import { VisualEffectsManager, MatchEventData, GarbageEventData } from '../effects/VisualEffectsManager';
-import { BlockDimensions, BoardDimensions, VisualTimings, getBlockPosition, getCursorDimensions } from './BlockConstants';
+import { BlockDimensions, BoardDimensions, VisualTimings, VisualStyle, getBlockPosition, getCursorDimensions } from './BlockConstants';
 import { BlockTextureManager } from './BlockTextureManager';
 
 export class EnhancedBoardRenderer {
@@ -547,6 +547,11 @@ export class EnhancedBoardRenderer {
     // Chain indicator (slightly increase opacity)
     if (tile.chain) {
       materials.forEach(mat => { if (mat) mat.opacity = Math.min((mat.opacity ?? 1.0) + 0.2, 1.0); });
+    }
+
+    // Visual-only size bump for matched blocks (+5px per side)
+    if (block.state === BlockState.MATCHED) {
+      mesh.scale.set(VisualStyle.MATCHED_SCALE_X, VisualStyle.MATCHED_SCALE_Y, 1);
     }
 
     // Warning indicator for top rows (emissive blink)
