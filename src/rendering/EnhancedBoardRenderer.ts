@@ -8,7 +8,7 @@ import { AnimationManager } from '../animation/AnimationManager';
 import { AssetLoader } from '../assets/AssetLoader';
 import { PixelPerfectSpriteRenderer } from './PixelPerfectSpriteRenderer';
 import { VisualEffectsManager, MatchEventData, GarbageEventData } from '../effects/VisualEffectsManager';
-import { BlockDimensions, BoardDimensions, VisualTimings, VisualStyle, getBlockPosition, getCursorDimensions } from './BlockConstants';
+import { BlockDimensions, BoardDimensions, VisualTimings, VisualStyle, BlockAngles, getBlockPosition, getCursorDimensions } from './BlockConstants';
 import { BlockTextureManager } from './BlockTextureManager';
 
 export class EnhancedBoardRenderer {
@@ -220,6 +220,7 @@ export class EnhancedBoardRenderer {
         // Offset Z so the front face remains at z=1 (original plane position)
         const zCenter = 1 - (BlockDimensions.BLOCK_DEPTH / 2);
         mesh.position.set(pos.x, pos.y, zCenter);
+        mesh.rotation.set(BlockAngles.DEFAULT_TILT_X, BlockAngles.DEFAULT_TILT_Y, 0);
         mesh.name = `Block_${row}_${col}`;
         mesh.visible = false; // Start hidden
         // Add rim/edge highlight as child so it follows animations/rotations
@@ -385,7 +386,7 @@ export class EnhancedBoardRenderer {
           }
           // Ensure transform is reset when tile becomes empty
           mesh.userData.matchRotated = false;
-          mesh.rotation.set(0, 0, 0);
+          mesh.rotation.set(BlockAngles.DEFAULT_TILT_X, BlockAngles.DEFAULT_TILT_Y, 0);
           mesh.scale.set(1, 1, 1);
         }
       }
@@ -446,7 +447,7 @@ export class EnhancedBoardRenderer {
         mesh.userData.registeredBlock = block;
         // Reset per-mesh rotation/scale when ownership changes to avoid inheriting prior effects
         mesh.userData.matchRotated = false;
-        mesh.rotation.set(0, 0, 0);
+        mesh.rotation.set(BlockAngles.DEFAULT_TILT_X, BlockAngles.DEFAULT_TILT_Y, 0);
         mesh.scale.set(1, 1, 1);
       }
     } else {
@@ -539,7 +540,7 @@ export class EnhancedBoardRenderer {
     // Reset transform for non-animated blocks
     mesh.scale.set(1, 1, 1);
     // Ensure Y rotation is reset so previously matched tiles don't stay edge-on invisible
-    mesh.rotation.set(0, 0, 0);
+    mesh.rotation.set(BlockAngles.DEFAULT_TILT_X, BlockAngles.DEFAULT_TILT_Y, 0);
 
     // Reset opacity on all materials
     materials.forEach(mat => { if (mat) mat.opacity = 1.0; });

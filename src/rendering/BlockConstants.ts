@@ -7,7 +7,7 @@ export const BlockDimensions = {
   BLOCK_WIDTH: 108,
   BLOCK_HEIGHT: 103,
   // Depth for 3D effect (in pixels)
-  BLOCK_DEPTH: 16,
+  BLOCK_DEPTH: 80,
   
   // Gap between blocks
   BLOCK_GAP: 10,
@@ -18,6 +18,13 @@ export const BlockDimensions = {
   
   // Legacy tile size for backward compatibility
   LEGACY_TILE_SIZE: 32,
+} as const;
+
+// Default rotational tilt applied to blocks for subtle 3D effect
+export const BlockAngles = {
+  // Slight forward/back tilt around X and Y axes (~5 degrees)
+  DEFAULT_TILT_X: Math.PI / 36,
+  DEFAULT_TILT_Y: -Math.PI / 36,
 } as const;
 
 // Calculate board pixel dimensions based on block dimensions
