@@ -20,10 +20,11 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # needed to push to gh-pages
+      contents: write   # push to gh-pages
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GITHUB_REPOSITORY: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}          # some tools read GH_TOKEN
+      GITHUB_REPOSITORY: ${{ github.repository }}    # owner/repo
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,6 +51,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      # Optional safety: make origin push use the Actions token
       - name: Rewrite git remote with Actions token
         run: |
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}
@@ -59,7 +61,7 @@ jobs:
         env:
           NODE_ENV: production
 
-  # --- Fork PR preview (safe, no writes to repo) ---
+  # --- Fork PR preview (safe; requires env to allow all branches) ---
   preview-fork:
     if: |
       github.event_name == 'pull_request' &&
