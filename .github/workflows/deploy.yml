@@ -1,17 +1,28 @@
-# .github/workflows/deploy.yml
-name: Deploy (production)
+name: Deploy (main & PRs)
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write  # allow pushing to gh-pages
+concurrency:
+  # Prevent overlapping publishes to the live site
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  # --- Live deploy (main branch and same-repo PRs) ---
+  deploy-live:
+    # Run on push to main OR on PRs where the head repo is the same (not a fork)
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed to push to gh-pages
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
@@ -42,5 +53,49 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Deploy (gh-pages)
+      - name: Deploy (overwrite live site)
         run: npm run deploy
+
+  # --- Fork PR preview (safe, no writes to repo) ---
+  preview-fork:
+    # Only for PRs from forks (GITHUB_TOKEN is read-only there)
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write      # publish preview
+      id-token: write   # required by deploy-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint / Types / Tests
+        run: |
+          npm run lint
+          npm run type-check
+          npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy PR Preview
+        id: deployment
+        uses: actions/deploy-pages@v4
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
