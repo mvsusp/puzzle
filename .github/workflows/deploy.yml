@@ -20,7 +20,7 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write   # needed to push to gh-pages
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
@@ -50,10 +50,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Rewrite git remote with Actions token
+        run: |
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}
+
       - name: Deploy (overwrite live site)
         run: npm run deploy
         env:
-          # If your deploy script cares about NODE_ENV, set it only here:
           NODE_ENV: production
 
   # --- Fork PR preview (safe, no writes to repo) ---
