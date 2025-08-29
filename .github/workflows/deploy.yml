@@ -8,25 +8,22 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # Prevent overlapping publishes to the live site
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   # --- Live deploy (main branch and same-repo PRs) ---
   deploy-live:
-    # Run on push to main OR on PRs where the head repo is the same (not a fork)
     if: |
       github.event_name == 'push' ||
       (github.event_name == 'pull_request' &&
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # needed to push to gh-pages
+      contents: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
-      NODE_ENV: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,8 +36,8 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install
-        run: npm ci
+      - name: Install (include devDependencies)
+        run: npm ci --include=dev
 
       - name: Lint / Types / Tests
         run: |
@@ -55,17 +52,19 @@ jobs:
 
       - name: Deploy (overwrite live site)
         run: npm run deploy
+        env:
+          # If your deploy script cares about NODE_ENV, set it only here:
+          NODE_ENV: production
 
   # --- Fork PR preview (safe, no writes to repo) ---
   preview-fork:
-    # Only for PRs from forks (GITHUB_TOKEN is read-only there)
     if: |
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     permissions:
-      pages: write      # publish preview
-      id-token: write   # required by deploy-pages
+      pages: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,8 +75,8 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install
-        run: npm ci
+      - name: Install (include devDependencies)
+        run: npm ci --include=dev
 
       - name: Lint / Types / Tests
         run: |
