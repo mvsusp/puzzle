@@ -1,0 +1,105 @@
+name: Deploy (main & PRs)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # --- Live deploy (main branch and same-repo PRs) ---
+  deploy-live:
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # push to gh-pages
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}          # some tools read GH_TOKEN
+      GITHUB_REPOSITORY: ${{ github.repository }}    # owner/repo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install (include devDependencies)
+        run: npm ci --include=dev
+
+      - name: Lint / Types / Tests
+        run: |
+          npm run lint
+          npm run type-check
+          npm test
+
+      - name: Set git identity (for gh-pages commit)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # Optional safety: make origin push use the Actions token
+      - name: Rewrite git remote with Actions token
+        run: |
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}
+
+      - name: Deploy (overwrite live site)
+        run: npm run deploy
+        env:
+          NODE_ENV: production
+
+  # --- Fork PR preview (safe; requires env to allow all branches) ---
+  preview-fork:
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install (include devDependencies)
+        run: npm ci --include=dev
+
+      - name: Lint / Types / Tests
+        run: |
+          npm run lint
+          npm run type-check
+          npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy PR Preview
+        id: deployment
+        uses: actions/deploy-pages@v4
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
