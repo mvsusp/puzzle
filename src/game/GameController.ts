@@ -7,6 +7,7 @@ import { debugLog } from '../debug/InputDebugger';
 import { StateManager } from '../core/StateManager';
 import { StateTransition, GameState, StateUtils } from '../core/GameState';
 import { AudioSystem } from '../audio/AudioSystem';
+import { BlockDimensions, BoardDimensions } from '../rendering/BlockConstants';
 
 // Game controller state
 export enum GameControllerState {
@@ -55,16 +56,39 @@ export class GameController {
   public totalSwaps: number = 0;
   public totalRaises: number = 0;
   public totalMoves: number = 0;
-  
+
   // Garbage drop cooldown
   private lastGarbageDropTime: number = 0;
 
-  constructor(board: Board, cursor: Cursor, audioSystem?: AudioSystem) {
+  // Pointer input handling
+  private canvas: HTMLCanvasElement | undefined;
+  private boundPointerMove?: (event: PointerEvent) => void;
+  private boundPointerDown?: (event: PointerEvent) => void;
+  private boundClick?: (event: MouseEvent) => void;
+
+  // World/board positioning for pointer calculations
+  private readonly WORLD_WIDTH = BoardDimensions.BOARD_PIXEL_WIDTH + 200;
+  private readonly WORLD_HEIGHT = BoardDimensions.BOARD_PIXEL_HEIGHT + 100;
+  private readonly BOARD_LEFT = -100 - BoardDimensions.BOARD_PIXEL_WIDTH / 2;
+  private readonly BOARD_BOTTOM = -BoardDimensions.BOARD_PIXEL_HEIGHT / 2;
+
+  constructor(board: Board, cursor: Cursor, audioSystem?: AudioSystem, canvas?: HTMLCanvasElement) {
     debugLog('GameController', 'Constructor called');
     this.board = board;
     this.cursor = cursor;
     this.inputManager = new InputManager();
     this.audioSystem = audioSystem || null;
+    this.canvas = canvas;
+
+    if (this.canvas) {
+      this.boundPointerMove = this.handlePointerMove.bind(this);
+      this.boundPointerDown = this.handlePointerDown.bind(this);
+      this.boundClick = this.handleClick.bind(this);
+
+      this.canvas.addEventListener('pointermove', this.boundPointerMove);
+      this.canvas.addEventListener('pointerdown', this.boundPointerDown);
+      this.canvas.addEventListener('click', this.boundClick);
+    }
     debugLog('GameController', 'GameController initialized');
   }
 
@@ -209,6 +233,53 @@ export class GameController {
         this.handleRaise();
       }
     }
+  }
+
+  // Pointer event handlers for touch/mouse input
+  private handlePointerDown(event: PointerEvent): void {
+    if (this.state !== GameControllerState.RUNNING) return;
+    this.moveCursorToPointer(event);
+  }
+
+  private handlePointerMove(event: PointerEvent): void {
+    if (this.state !== GameControllerState.RUNNING) return;
+    // For touch devices, pointermove only fires while pressed
+    if (event.pointerType === 'mouse' || event.buttons !== 0 || event.pressure > 0) {
+      this.moveCursorToPointer(event);
+    }
+  }
+
+  private handleClick(event: MouseEvent): void {
+    if (this.state !== GameControllerState.RUNNING) return;
+    this.moveCursorToPointer(event as unknown as PointerEvent);
+    this.handleSwap();
+  }
+
+  private moveCursorToPointer(event: PointerEvent): void {
+    if (!this.canvas) return;
+
+    const rect = this.canvas.getBoundingClientRect();
+    const ndcX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const ndcY = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
+    const worldX = ndcX * (this.WORLD_WIDTH / 2);
+    const worldY = ndcY * (this.WORLD_HEIGHT / 2);
+
+    const localX = worldX - this.BOARD_LEFT;
+    const localY = worldY - this.BOARD_BOTTOM;
+
+    if (
+      localX < 0 ||
+      localX >= BoardDimensions.BOARD_PIXEL_WIDTH ||
+      localY < 0 ||
+      localY >= BoardDimensions.BOARD_PIXEL_HEIGHT
+    ) {
+      return;
+    }
+
+    const gridX = Math.floor(localX / BlockDimensions.TILE_SIZE_X);
+    const gridY = Math.floor(localY / BlockDimensions.TILE_SIZE_Y);
+
+    this.cursor.setPosition(gridX, gridY);
   }
 
   // Handle cursor movement
@@ -518,5 +589,17 @@ export class GameController {
   public dispose(): void {
     this.inputManager.dispose();
     this.resetAllHoldCounters();
+
+    if (this.canvas) {
+      if (this.boundPointerMove) {
+        this.canvas.removeEventListener('pointermove', this.boundPointerMove);
+      }
+      if (this.boundPointerDown) {
+        this.canvas.removeEventListener('pointerdown', this.boundPointerDown);
+      }
+      if (this.boundClick) {
+        this.canvas.removeEventListener('click', this.boundClick);
+      }
+    }
   }
 }
