@@ -26,7 +26,7 @@ class Application {
       await this.gameEngine.initialize();
       
       // Set up game components (Phase 3 integration)
-      this.setupGame();
+      this.setupGame(canvas);
       
       this.gameEngine.start();
       
@@ -41,7 +41,7 @@ class Application {
     }
   }
   
-  private setupGame(): void {
+  private setupGame(canvas: HTMLCanvasElement): void {
     if (!this.gameEngine) return;
     
     const sceneManager = this.gameEngine.getSceneManager();
@@ -56,8 +56,8 @@ class Application {
     // Create cursor
     const cursor = new Cursor(board, EnhancedBoardRenderer.TILE_SIZE);
     
-    // Create game controller with audio system
-    const gameController = new GameController(board, cursor, audioSystem);
+    // Create game controller with audio system and canvas for pointer input
+    const gameController = new GameController(board, cursor, audioSystem, canvas);
     
     // Set up cursor in scene
     sceneManager.setCursor(cursor);
